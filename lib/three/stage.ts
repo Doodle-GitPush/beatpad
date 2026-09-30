@@ -5,6 +5,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { N8AOPass } from 'n8ao';
 import { clamp } from '../audio';
+import type { Theme } from '../theme';
 import { createGlossyFloor } from './floor';
 
 const VIEW_DIR = new THREE.Vector3(0, Math.cos(0.55), Math.sin(0.55)).normalize();
@@ -49,21 +50,27 @@ export function createStage(canvas: HTMLCanvasElement) {
   RectAreaLightUniformsLib.init();
 
   const scene = new THREE.Scene();
-  {
+  // studio sweep behind the device, one per theme
+  const backdrop = (stops: [number, string][]) => {
     const c = document.createElement('canvas'); c.width = 64; c.height = 512;
     const g = c.getContext('2d')!, gr = g.createLinearGradient(0, 0, 0, 512);
-    gr.addColorStop(0, '#d9d8d4'); gr.addColorStop(0.45, '#ecebe8'); gr.addColorStop(1, '#dedddA');
+    stops.forEach(([o, col]) => gr.addColorStop(o, col));
     g.fillStyle = gr; g.fillRect(0, 0, 64, 512);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-    scene.background = t;
-  }
+    return t;
+  };
+  const BACKDROP = {
+    light: backdrop([[0, '#d9d8d4'], [0.45, '#ecebe8'], [1, '#dedddA']]),
+    dark: backdrop([[0, '#1f1f1d'], [0.45, '#3a3a37'], [1, '#262624']]),
+  };
   const envTex = studioEnv(renderer);
   scene.environment = envTex;
 
   const camera = new THREE.PerspectiveCamera(17, 1, 0.1, 300);
 
   // key light (casts the shadows), an area softbox for glints, cool rim
-  scene.add(new THREE.HemisphereLight(0xfffaf2, 0x8f8d88, 0.35));
+  const hemi = new THREE.HemisphereLight(0xfffaf2, 0x8f8d88, 0.35);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff6ea, 2.2);
   sun.position.set(-2.5, 14, 5);
   sun.castShadow = true;
@@ -89,14 +96,28 @@ export function createStage(canvas: HTMLCanvasElement) {
   scene.add(floor);
 
   // ground: shadow catcher + soft contact shadow
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.22 }));
+  const contactMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.5, depthWrite: false });
+  const groundMat = new THREE.ShadowMaterial({ opacity: 0.22 });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
   {
     const c = document.createElement('canvas'); c.width = 512; c.height = 360;
     const g = c.getContext('2d')!; g.filter = 'blur(26px)'; g.fillStyle = '#000';
     g.beginPath(); g.roundRect(70, 70, 372, 220, 30); g.fill();
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(13, 9.1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.5, depthWrite: false }));
+    contactMat.map = new THREE.CanvasTexture(c);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(13, 9.1), contactMat);
     m.rotation.x = -Math.PI / 2; m.position.set(0, 0.002, 0.25); scene.add(m);
+  }
+
+  /** light: bright studio sweep · dark: device lit on a near-black table, stronger reflection */
+  function setTheme(t: Theme) {
+    scene.background = BACKDROP[t];
+    const dark = t === 'dark';
+    groundMat.opacity = dark ? 0.55 : 0.22;
+    contactMat.opacity = dark ? 0.85 : 0.5;
+    hemi.intensity = dark ? 0.18 : 0.35;
+    rim.intensity = dark ? 1.1 : 0.7;            // brighter edge light separates the dark panels from the dark backdrop
+    floor.setStrength(dark ? 0.8 : 0.62);
   }
 
   // post: ambient occlusion → contact shadows between keys, knobs and panels
@@ -164,6 +185,7 @@ export function createStage(canvas: HTMLCanvasElement) {
     composer.dispose();
     renderer.dispose();
     envTex.dispose();
+    BACKDROP.light.dispose(); BACKDROP.dark.dispose();
     scene.traverse((o) => {
       const m = o as THREE.Mesh;
       m.geometry?.dispose();
@@ -172,7 +194,7 @@ export function createStage(canvas: HTMLCanvasElement) {
     });
   }
 
-  return { renderer, scene, camera, controls, composer, resize, resetView, startIntro, cancelIntro, stepIntro, hasIntro: () => !!intro, setPointer, stepLights, dispose };
+  return { renderer, scene, camera, controls, composer, resize, resetView, startIntro, cancelIntro, stepIntro, hasIntro: () => !!intro, setPointer, stepLights, setTheme, dispose };
 }
 
 export type Stage = ReturnType<typeof createStage>;

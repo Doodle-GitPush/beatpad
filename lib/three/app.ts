@@ -3,6 +3,7 @@ import { KEYS } from '../keys';
 import { disposeSequencer, drawSteps, flush, load, pat, q, setCur, syncState, uiQ, updatePatUI } from '../sequencer';
 import { S, closeAudio, hasAudio, audioTime } from '../audio';
 import { ui } from '../store';
+import { applyTheme, hasSavedTheme, readTheme } from '../theme';
 import { buildDevice, type KnobKey, type KeyView } from './device';
 import { drawLegend, setFont } from './geometry';
 import { attachInteraction } from './interaction';
@@ -37,7 +38,22 @@ export function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string) {
   const onPointer = (e: PointerEvent) => stage.setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
   window.addEventListener('pointermove', onPointer);
   stage.resize(); stage.startIntro();
-  ui.set({ ready: true });
+
+  // theme: the inline <head> script already set data-theme; mirror it into the scene and follow later changes
+  let theme = readTheme();
+  stage.setTheme(theme);
+  ui.set({ ready: true, theme });
+  const unsubTheme = ui.subscribe(() => {
+    const t = ui.get().theme;
+    if (t !== theme) { theme = t; stage.setTheme(t); }
+  });
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const onSystem = (e: MediaQueryListEvent) => {
+    if (hasSavedTheme()) return;
+    const t = e.matches ? 'dark' : 'light';
+    applyTheme(t, false); ui.set({ theme: t });
+  };
+  mq.addEventListener('change', onSystem);
 
   let raf = 0, pulse = 0;
   const frame = () => {
@@ -98,6 +114,8 @@ export function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string) {
     cancelAnimationFrame(raf);
     window.removeEventListener('resize', onResize);
     window.removeEventListener('pointermove', onPointer);
+    unsubTheme();
+    mq.removeEventListener('change', onSystem);
     inter.dispose();
     KEYS.forEach((k) => { k.held = false; k.tx = k.tz = 0; k.flashUntil = 0; });
     disposeSequencer();

@@ -76,5 +76,5 @@ export function createGlossyFloor(width: number, height: number) {
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -0.001;
   floor.renderOrder = -1;          // under the shadow catcher and contact shadow
-  return floor;
+  return Object.assign(floor, { setStrength: (v: number) => { mat.uniforms.strength.value = v; } });
 }

@@ -32,8 +32,8 @@
 
 .stats { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
 .state { display: inline-flex; align-items: center; gap: 8px; }
-.led { width: 8px; height: 8px; border-radius: 50%; background: #b8b7b2; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.25); }
-.play { background: #5a5a57; }
+.led { width: 8px; height: 8px; border-radius: 50%; background: var(--led-off); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.25); }
+.play { background: var(--led-play); }
 .rec { background: var(--orange); box-shadow: 0 0 6px rgba(217, 88, 42, 0.7); }
 
 .help { font: 400 12px/1.6 var(--font-sans), sans-serif; text-transform: none; letter-spacing: 0; max-width: 760px; }
@@ -42,9 +42,9 @@
 .grp { display: flex; gap: 4px; }
 .step {
   width: 12px; height: 12px; border-radius: 3px; border: 0; padding: 0; cursor: pointer;
-  background: #c3c2bd; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.15);
+  background: var(--step); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.15);
 }
-.step.has { background: #8d8c87; }
+.step.has { background: var(--step-has); }
 .step.cur { background: var(--ink); }
 .step.has.cur { background: var(--orange); }
 .step.sel { outline: 2px solid var(--orange); outline-offset: 1px; }
@@ -54,8 +54,8 @@
   transform: translate(-50%, -100%);
   padding: 4px 8px;
   border-radius: 4px;
-  background: #f1f0ec;
-  color: #222;
+  background: var(--hud-bg);
+  color: var(--hud-ink);
   font: 500 11px var(--font-mono), monospace;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -77,6 +77,16 @@
 .error { max-width: 420px; padding: 0 24px; text-align: center; text-transform: none; letter-spacing: 0; font: 400 13px/1.6 var(--font-sans), sans-serif; pointer-events: auto; }
 .error b { color: var(--ink); font-weight: 500; }
 .error a { color: var(--ink); }
+
+.themeBtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); border-radius: 999px;
+  padding: 3px 10px 3px 8px; color: var(--ink); cursor: pointer; pointer-events: auto;
+  font: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+.themeBtn:hover { border-color: color-mix(in srgb, var(--ink) 55%, transparent); }
+.themeBtn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.themeBtn svg { width: 13px; height: 13px; }
 
 @media (max-width: 700px) {
   .help { display: none; }

@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from 'react';
+import type { Theme } from './theme';
 
 export interface UiState {
   ready: boolean;
+  theme: Theme;
   error: string | null;
   hint: string;
   state: 'stopped' | 'playing' | 'recording';
@@ -17,6 +19,7 @@ export interface UiState {
 
 let state: UiState = {
   ready: false,
+  theme: 'light',
   error: null,
   hint: 'tap any key to start audio',
   state: 'stopped',

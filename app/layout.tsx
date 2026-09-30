@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Mono, Inter } from 'next/font/google';
+import { THEME_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
 const sans = Inter({ variable: '--font-sans', subsets: ['latin'], weight: ['300', '400', '500'] });
@@ -14,11 +15,16 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#d6d5d2',
+  colorScheme: 'light dark',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" data-theme="light" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* sets data-theme before first paint so there is no light/dark flash */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );
