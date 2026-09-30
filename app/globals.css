@@ -1,0 +1,19 @@
+:root {
+  --bg: #d6d5d2;
+  --ink: #3b3b39;
+  --muted: #8a8984;
+  --orange: #d9582a;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans), 'Helvetica Neue', Arial, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}

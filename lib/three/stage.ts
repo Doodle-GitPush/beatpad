@@ -1,0 +1,178 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { N8AOPass } from 'n8ao';
+import { clamp } from '../audio';
+import { createGlossyFloor } from './floor';
+
+const VIEW_DIR = new THREE.Vector3(0, Math.cos(0.55), Math.sin(0.55)).normalize();
+const TARGET = new THREE.Vector3(0, 0.4, 0.15);
+
+/** virtual photo studio: softboxes + bounce card that metal and gloss reflect */
+function studioEnv(renderer: THREE.WebGLRenderer) {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const s = new THREE.Scene();
+  s.add(new THREE.Mesh(new THREE.SphereGeometry(40, 32, 16), new THREE.MeshBasicMaterial({ color: 0x4a4946, side: THREE.BackSide })));
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(40, 32), new THREE.MeshBasicMaterial({ color: 0x8d8c88 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.y = -1; s.add(floor);
+  const box = (w: number, h: number, power: number, x: number, y: number, z: number) => {
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.985, 0.96).multiplyScalar(power), side: THREE.DoubleSide, toneMapped: false }),
+    );
+    m.position.set(x, y, z); m.lookAt(0, 0, 0); s.add(m);
+  };
+  box(12, 8, 4.2, -2, 20, 5);     // overhead softbox (smaller → reads as a highlight, not a wash)
+  box(3, 18, 6, -18, 7, 2);       // left strip → long highlights on frame edges
+  box(3, 18, 4.5, 18, 8, -3);     // right strip
+  box(24, 3, 1.6, 0, 6, -20);     // back kicker
+  box(22, 5, 0.6, 0, 17, -11);    // mirror-angle panel → sheen on flat key tops
+  box(20, 4, 1.0, 0, 3, 22);      // low front bounce
+  const card = new THREE.Mesh(new THREE.PlaneGeometry(26, 7), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(2.6), side: THREE.DoubleSide, toneMapped: false }));
+  card.position.set(0, -0.8, 10); card.rotation.x = -Math.PI / 2 + 0.5; s.add(card); // bright band in the frame's front face
+  const tex = pmrem.fromScene(s, 0.01).texture;
+  pmrem.dispose();
+  s.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); (m.material as THREE.Material | undefined)?.dispose(); });
+  return tex;
+}
+
+export function createStage(canvas: HTMLCanvasElement) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const DPR = Math.min(window.devicePixelRatio, 1.75);
+  renderer.setPixelRatio(DPR);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.92;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  RectAreaLightUniformsLib.init();
+
+  const scene = new THREE.Scene();
+  {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 512;
+    const g = c.getContext('2d')!, gr = g.createLinearGradient(0, 0, 0, 512);
+    gr.addColorStop(0, '#d9d8d4'); gr.addColorStop(0.45, '#ecebe8'); gr.addColorStop(1, '#dedddA');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 512);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    scene.background = t;
+  }
+  const envTex = studioEnv(renderer);
+  scene.environment = envTex;
+
+  const camera = new THREE.PerspectiveCamera(17, 1, 0.1, 300);
+
+  // key light (casts the shadows), an area softbox for glints, cool rim
+  scene.add(new THREE.HemisphereLight(0xfffaf2, 0x8f8d88, 0.35));
+  const sun = new THREE.DirectionalLight(0xfff6ea, 2.2);
+  sun.position.set(-2.5, 14, 5);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 4, far: 30 });
+  sun.shadow.radius = 5; sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02;
+  scene.add(sun);
+  const softbox = new THREE.RectAreaLight(0xffffff, 2.6, 9, 6);
+  softbox.position.set(-1.5, 9, 4.5); softbox.lookAt(0, 0, 0); scene.add(softbox);
+  // the softbox drifts a little with the pointer so highlights slide across keys and metal
+  const SOFTBOX_HOME = softbox.position.clone();
+  const pointer = new THREE.Vector2(), pointerSmooth = new THREE.Vector2();
+  const setPointer = (nx: number, ny: number) => pointer.set(nx, ny);
+  const stepLights = () => {
+    pointerSmooth.lerp(pointer, 0.06);
+    softbox.position.set(SOFTBOX_HOME.x + pointerSmooth.x * 3.2, SOFTBOX_HOME.y, SOFTBOX_HOME.z - pointerSmooth.y * 2.4);
+    softbox.lookAt(0, 0, 0);
+  };
+  const rim = new THREE.DirectionalLight(0xe9eef7, 0.7); rim.position.set(7, 4, -7); scene.add(rim);
+
+  // glossy tabletop reflection (half resolution: it is blurred anyway)
+  const floor = createGlossyFloor(Math.round(window.innerWidth * DPR * 0.5), Math.round(window.innerHeight * DPR * 0.5));
+  scene.add(floor);
+
+  // ground: shadow catcher + soft contact shadow
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.22 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+  {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 360;
+    const g = c.getContext('2d')!; g.filter = 'blur(26px)'; g.fillStyle = '#000';
+    g.beginPath(); g.roundRect(70, 70, 372, 220, 30); g.fill();
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(13, 9.1), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, opacity: 0.5, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set(0, 0.002, 0.25); scene.add(m);
+  }
+
+  // post: ambient occlusion → contact shadows between keys, knobs and panels
+  const composer = new EffectComposer(renderer);
+  composer.setPixelRatio(DPR);
+  const ao = new N8AOPass(scene, camera, window.innerWidth, window.innerHeight);
+  Object.assign(ao.configuration, { aoRadius: 0.45, distanceFalloff: 0.35, intensity: 2.6, color: new THREE.Color(0x0b0a09), gammaCorrection: false, screenSpaceRadius: false });
+  ao.setQualityMode('High');
+  composer.addPass(ao);
+  composer.addPass(new OutputPass());
+
+  const controls = new OrbitControls(camera, canvas);
+  controls.target.copy(TARGET);
+  controls.enablePan = false;
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minPolarAngle = 0; controls.maxPolarAngle = 1.3;
+  controls.minAzimuthAngle = -1.3; controls.maxAzimuthAngle = 1.3;
+  controls.rotateSpeed = 0.6;
+
+  function fitCamera() {
+    const aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = aspect; camera.updateProjectionMatrix();
+    const vf = (camera.fov * Math.PI) / 360, hf = Math.atan(Math.tan(vf) * aspect);
+    const dist = Math.max(6.4 / Math.tan(hf), 4.7 / Math.tan(vf));
+    controls.minDistance = dist * 0.45; controls.maxDistance = dist * 1.8;
+    return dist;
+  }
+  function resetView() {
+    const d = fitCamera();
+    camera.position.copy(TARGET).addScaledVector(VIEW_DIR, d);
+    controls.update();
+  }
+
+  /* intro: glide in from a low angle; any interaction cancels it */
+  let intro: { t0: number; dur: number; d: number; el1: number } | null = null;
+  const startIntro = () => { intro = { t0: performance.now(), dur: 2800, d: fitCamera(), el1: Math.PI / 2 - 0.55 }; };
+  const cancelIntro = () => { intro = null; };
+  const stepIntro = (now: number) => {
+    if (!intro) return;
+    const { t0, dur, d, el1 } = intro;
+    const p = clamp((now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    const az = -0.6 * (1 - e), el = 0.3 + (el1 - 0.3) * e, dist = d * (1.35 - 0.35 * e);
+    camera.position.set(
+      TARGET.x + Math.sin(az) * Math.cos(el) * dist,
+      TARGET.y + Math.sin(el) * dist,
+      TARGET.z + Math.cos(az) * Math.cos(el) * dist,
+    );
+    if (p >= 1) intro = null;
+  };
+
+  let viewSet = false;
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    composer.setSize(w, h);
+    floor.getRenderTarget().setSize(Math.round(w * DPR * 0.5), Math.round(h * DPR * 0.5));
+    const prev = camera.position.distanceTo(controls.target);
+    fitCamera();
+    if (!intro && (!viewSet || prev > controls.maxDistance || prev < controls.minDistance)) { resetView(); viewSet = true; }
+  }
+
+  function dispose() {
+    controls.dispose();
+    floor.dispose();
+    composer.dispose();
+    renderer.dispose();
+    envTex.dispose();
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      m.geometry?.dispose();
+      const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+      (Array.isArray(mat) ? mat : mat ? [mat] : []).forEach((x) => x.dispose());
+    });
+  }
+
+  return { renderer, scene, camera, controls, composer, resize, resetView, startIntro, cancelIntro, stepIntro, hasIntro: () => !!intro, setPointer, stepLights, dispose };
+}
+
+export type Stage = ReturnType<typeof createStage>;
