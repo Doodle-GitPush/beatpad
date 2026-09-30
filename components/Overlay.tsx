@@ -1,6 +1,6 @@
 'use client';
 
-import { exportWav, selectStep } from '@/lib/sequencer';
+import { exportWav, selectStep, shareBeat } from '@/lib/sequencer';
 import { applyTheme } from '@/lib/theme';
 import { ui } from '@/lib/store';
 import { useUi } from '@/lib/store';
@@ -25,15 +25,14 @@ export default function Overlay() {
             <p>This needs WebGL. Try a current Chrome, Safari or Firefox with hardware acceleration turned on, or open the <a href="/2d.html">2D version</a>.</p>
           </div>
         </div>
-      ) : (
-        !u.ready && <div className={s.loading}>loading…</div>
-      )}
+      ) : null}
 
       <div className={`${s.ui} ${s.top}`}>
         <span><b>beat pad</b> — 3d drum instrument</span>
         <span>
           <span>{u.hint}</span> ·{' '}
-          <button type="button" className={s.link} onClick={exportWav}>export wav</button> ·{' '}
+          <button type="button" className={s.link} onClick={(e) => { shareBeat(); e.currentTarget.blur(); }}>share beat</button> ·{' '}
+          <button type="button" className={s.link} onClick={(e) => { exportWav(); e.currentTarget.blur(); }}>export wav</button> ·{' '}
           <a href="/2d.html">2d version</a> ·{' '}
           <button type="button" className={s.themeBtn} onClick={(e) => { toggleTheme(); e.currentTarget.blur(); }}
             aria-label={`Switch to ${u.theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${u.theme === 'dark' ? 'light' : 'dark'} mode`}>

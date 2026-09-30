@@ -9,6 +9,11 @@ const mono = IBM_Plex_Mono({ variable: '--font-mono', subsets: ['latin'], weight
 export const metadata: Metadata = {
   title: 'Beat Pad 3D',
   description: 'A 3D drum machine you can play in the browser: numpad keys, knobs, fader, jog wheel and a 16-step sequencer.',
+  openGraph: {
+    title: 'Beat Pad 3D',
+    description: 'Make a beat on a 3D drum machine in your browser — and share it with a link.',
+    type: 'website',
+  },
 };
 
 export const viewport: Viewport = {

@@ -3,6 +3,7 @@ import {
 } from './audio';
 import { KEY_BY_ID, NUM_IDX, type Key } from './keys';
 import { ui } from './store';
+import { encodeBeat, readBeatFromHash } from './share';
 
 const STORE = 'beatpad.v2';
 const newPat = () => Array.from({ length: 16 }, () => new Set<string>());
@@ -169,6 +170,54 @@ export function release(k: Key) {
 export function paramChanged(k: 'filter' | 'echo' | 'vol' | 'bpm' | 'kit' | 'pitch' | 'swing') {
   if (k !== 'pitch' && k !== 'swing') apply(k);
   syncState(); save();
+}
+
+/* ---------- share links ---------- */
+export function shareUrl() {
+  const hash = encodeBeat({ pattern: pat(), bpm: S.bpm, kit: S.kit, swing: S.swing, filter: S.filter, echo: S.echo, pitch: S.pitch });
+  return `${location.origin}${location.pathname}#beat=${hash}`;
+}
+
+export async function shareBeat() {
+  if (!pat().some((set) => set.size)) { ui.set({ hint: 'nothing to share — pattern is empty' }); return; }
+  const url = shareUrl();
+  const title = 'A beat I made on Beat Pad';
+  try {
+    // phones get the native share sheet; desktops get the link on the clipboard
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+      await navigator.share({ title, url });
+      ui.set({ hint: 'shared' });
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    ui.set({ hint: 'link copied — send it to anyone' });
+  } catch (err) {
+    if ((err as Error)?.name === 'AbortError') return;          // user closed the share sheet
+    window.prompt('Copy this link to share your beat:', url);
+  }
+}
+
+/**
+ * If the page was opened from a share link, load that beat into the first empty pattern slot
+ * (or the current one when all 9 are used) and adopt its sound settings. Returns true when it did.
+ */
+export function importFromHash(): boolean {
+  const beat = readBeatFromHash();
+  if (!beat) return false;
+  let slot = patterns.findIndex((p) => p.every((set) => set.size === 0));
+  if (slot < 0) slot = q.P;
+  patterns[slot].forEach((set, st) => { set.clear(); beat.pattern[st].forEach((id) => set.add(id)); });
+  q.P = slot; q.pendingP = -1; q.selStep = -1;
+  Object.assign(S, {
+    bpm: beat.bpm, kit: clamp(beat.kit, 0, KITS.length - 1), swing: beat.swing,
+    filter: beat.filter, echo: beat.echo, pitch: beat.pitch,
+  });
+  (['filter', 'echo', 'bpm', 'kit'] as const).forEach(apply);
+  history.replaceState(null, '', location.pathname + location.search);   // a reload shouldn't import it again
+  save(); updatePatUI(); syncState();
+  setHit('shared beat → pattern ' + (slot + 1));
+  ui.set({ hint: 'loaded a shared beat · press ○ to play' });
+  return true;
 }
 
 /* ---------- export ---------- */

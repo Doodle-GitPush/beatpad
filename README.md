@@ -26,6 +26,10 @@ npm run build && npm start
 Patterns, tempo, kit and knob positions autosave to `localStorage`. **export wav** renders the current
 pattern (two loops plus echo tail) faster than real time.
 
+**share beat** copies a link (or opens the share sheet on phones) with the current pattern and its sound
+settings packed into the URL hash — no server involved. Opening a link loads the beat into the first empty
+pattern slot. Format: `lib/share.ts`.
+
 ## Layout
 
 ```
@@ -34,11 +38,14 @@ components/
   BeatPadLoader.tsx     client wrapper — loads the instrument with ssr: false
   BeatPad.tsx           canvas + mount/cleanup of the 3D app
   Overlay.tsx           readouts, step buttons, hover label (React, reads lib/store)
+  Preloader.tsx         boot screen with real load progress
 lib/
   audio.ts              synth voices, effects graph, offline WAV render
   sequencer.ts          patterns, scheduler, swing, editing, autosave
   keys.ts               key map (layout, legends, synth voice, keyboard codes)
   store.ts              tiny external store bridging the engine to React
+  share.ts              encode / decode beats for share links
+  theme.ts              light / dark, applied before first paint
   three/
     stage.ts            renderer, studio environment, lights, ambient occlusion, camera + intro
     materials.ts        bead-blasted aluminium, glossy keys, panels

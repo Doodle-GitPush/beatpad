@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { KEYS } from '../keys';
-import { disposeSequencer, drawSteps, flush, load, pat, q, setCur, syncState, uiQ, updatePatUI } from '../sequencer';
+import { disposeSequencer, drawSteps, flush, importFromHash, load, pat, q, setCur, syncState, uiQ, updatePatUI } from '../sequencer';
 import { S, closeAudio, hasAudio, audioTime } from '../audio';
 import { ui } from '../store';
 import { applyTheme, hasSavedTheme, readTheme } from '../theme';
@@ -21,28 +21,43 @@ function legendColor(v: KeyView, t: number) {
   return on ? (key.style === 'orange' ? '#ffffff' : '#e8531f') : baseColor;
 }
 
-/** Builds the whole instrument on a canvas. Returns a cleanup function. */
-export function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string) {
+const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+export type Progress = (p: number, label: string) => void;
+
+/**
+ * Builds the whole instrument on a canvas, reporting progress for the preloader.
+ * Resolves with a cleanup function once the first frame has been drawn.
+ */
+export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string, progress: Progress, cancelled: () => boolean) {
   setFont(fontFamily);
+  progress(0.55, 'setting up the studio'); await nextFrame();
+  if (cancelled()) return () => {};
   const stage = createStage(canvas);
+  progress(0.66, 'machining the parts'); await nextFrame();
   const dev = buildDevice(stage.scene, createMaterials());
 
   load();
-  (Object.keys(dev.knobs) as KnobKey[]).forEach((k) => dev.setKnobVisual(k, true));
-  dev.setFaderVisual();
+  importFromHash();
+  const syncControls = () => {
+    (Object.keys(dev.knobs) as KnobKey[]).forEach((k) => dev.setKnobVisual(k, true));
+    dev.setFaderVisual();
+  };
+  syncControls();
   updatePatUI(); syncState();
+  const onHash = () => { if (importFromHash()) syncControls(); };   // share link pasted into an open tab
+  window.addEventListener('hashchange', onHash);
 
   const inter = attachInteraction(stage, dev);
   const onResize = () => stage.resize();
   window.addEventListener('resize', onResize);
   const onPointer = (e: PointerEvent) => stage.setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1);
   window.addEventListener('pointermove', onPointer);
-  stage.resize(); stage.startIntro();
+  stage.resize();
 
   // theme: the inline <head> script already set data-theme; mirror it into the scene and follow later changes
   let theme = readTheme();
   stage.setTheme(theme);
-  ui.set({ ready: true, theme });
+  ui.set({ theme });
   const unsubTheme = ui.subscribe(() => {
     const t = ui.get().theme;
     if (t !== theme) { theme = t; stage.setTheme(t); }
@@ -54,6 +69,11 @@ export function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string) {
     applyTheme(t, false); ui.set({ theme: t });
   };
   mq.addEventListener('change', onSystem);
+
+  // warm up every shader now, so the first interaction doesn't stutter
+  progress(0.8, 'polishing the metal'); await nextFrame();
+  try { await stage.renderer.compileAsync(stage.scene, stage.camera); } catch { /* compile lazily instead */ }
+  progress(0.94, 'first light');
 
   let raf = 0, pulse = 0;
   const frame = () => {
@@ -108,12 +128,18 @@ export function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string) {
     stage.composer.render();
     raf = requestAnimationFrame(frame);
   };
+  stage.composer.render();                 // first frame (also compiles the post-processing passes)
+  await nextFrame();
   raf = requestAnimationFrame(frame);
+  stage.startIntro();
+  progress(1, 'ready');
+  ui.set({ ready: true });
 
-  return () => {
+  const stop = () => {
     cancelAnimationFrame(raf);
     window.removeEventListener('resize', onResize);
     window.removeEventListener('pointermove', onPointer);
+    window.removeEventListener('hashchange', onHash);
     unsubTheme();
     mq.removeEventListener('change', onSystem);
     inter.dispose();
@@ -125,4 +151,6 @@ export function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string) {
     drawSteps(); setCur(-1);
     ui.set({ ready: false, hint: 'tap any key to start audio' });
   };
+  if (cancelled()) { stop(); return () => {}; }
+  return stop;
 }

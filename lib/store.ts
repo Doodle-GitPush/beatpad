@@ -3,6 +3,9 @@ import type { Theme } from './theme';
 
 export interface UiState {
   ready: boolean;
+  /** 0–1 load progress and what is happening, for the preloader */
+  progress: number;
+  loadStage: string;
   theme: Theme;
   error: string | null;
   hint: string;
@@ -19,6 +22,8 @@ export interface UiState {
 
 let state: UiState = {
   ready: false,
+  progress: 0,
+  loadStage: 'loading the instrument',
   theme: 'light',
   error: null,
   hint: 'tap any key to start audio',
