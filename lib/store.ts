@@ -3,6 +3,18 @@ import type { Theme } from './theme';
 
 export interface UiState {
   ready: boolean;
+  /** side panel */
+  panel: 'none' | 'challenge' | 'starters' | 'keys';
+  /** key being customised in the keys panel */
+  editKey: string | null;
+  /** counters the guide watches */
+  hits: number;
+  /** bumps whenever pattern / sound settings change, so panels re-check */
+  rev: number;
+  colorway: number;
+  challengeEntry: string | null;
+  /** guided tour step, -1 when hidden */
+  guide: number;
   /** 0–1 load progress and what is happening, for the preloader */
   progress: number;
   loadStage: string;
@@ -22,6 +34,13 @@ export interface UiState {
 
 let state: UiState = {
   ready: false,
+  panel: 'none',
+  editKey: null,
+  hits: 0,
+  rev: 0,
+  colorway: 0,
+  challengeEntry: null,
+  guide: -1,
   progress: 0,
   loadStage: 'loading the instrument',
   theme: 'light',

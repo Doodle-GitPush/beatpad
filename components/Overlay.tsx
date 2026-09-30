@@ -4,6 +4,8 @@ import { exportWav, selectStep, shareBeat } from '@/lib/sequencer';
 import { applyTheme } from '@/lib/theme';
 import { ui } from '@/lib/store';
 import { useUi } from '@/lib/store';
+import Guide from './Guide';
+import Panel, { Tools } from './Panel';
 import s from './BeatPad.module.css';
 
 export default function Overlay() {
@@ -55,9 +57,8 @@ export default function Overlay() {
           <span>hit <b>{u.hit}</b></span>
         </div>
         <div className={s.help}>
-          Keys play sounds · <b>○</b> play · <b>●</b> record · hold <b>●</b> + <b>1–9</b> switch pattern · <b>del</b> clear
-          (hold + key erases one) · click a step light, then press keys to edit it · knobs filter / echo / pitch / swing ·
-          fader vol · roller kit · jog tempo · drag empty space to orbit
+          <b>○</b> play · <b>●</b> record · hold <b>●</b> + <b>1–9</b> switch pattern · <b>del</b> clear
+          (hold + key erases one) · click a step light, then keys, to edit it · drag empty space to orbit
         </div>
         <div className={s.steps}>
           {[0, 1, 2, 3].map((g) => (
@@ -73,6 +74,7 @@ export default function Overlay() {
       </div>
 
       <div className={`${s.hud} ${u.hud.show ? s.show : ''}`} style={{ left: u.hud.x, top: u.hud.y }}>{u.hud.text}</div>
+      {u.ready && <><Tools /><Panel /><Guide /></>}
     </>
   );
 }

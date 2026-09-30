@@ -1,4 +1,4 @@
-import { KEY_BY_ID } from './keys';
+import { keyConfig } from './keyconfig';
 
 export const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 
@@ -177,6 +177,42 @@ const VOICES: Record<string, Voice> = {
     lp.frequency.setValueAtTime(2200 * Math.min(p, 2), t); lp.frequency.exponentialRampToValueAtTime(180, t + 0.25);
     osc('sawtooth', 73.42 * p, t, 0.45 * D, lp); osc('square', 36.71 * p, t, 0.45 * D, lp);
   },
+
+  /* ---- added with key customisation ---- */
+  kick2(t, p, D) {                       // tight, clicky 909-style kick
+    const o = osc('sine', 210 * p, t, 0.32 * D, env(t, 1, 0.001, 0.26 * D));
+    o.frequency.exponentialRampToValueAtTime(52 * p, t + 0.06);
+    const ws = ctx!.createWaveShaper(); ws.curve = shaper; ws.connect(env(t, 0.35, 0.001, 0.05));
+    osc('triangle', 120 * p, t, 0.06, ws);
+    noise(t, 0.015, biq('bandpass', 4200, 0.8, env(t, 0.45, 0.001, 0.01)));
+  },
+  snap(t, p, D) {
+    noise(t, 0.08 * D, biq('bandpass', 2600 * p, 3.5, env(t, 0.9, 0.001, 0.05 * D)));
+    noise(t, 0.02, biq('highpass', 6000, null, env(t, 0.3, 0.001, 0.008)));
+  },
+  woodblock(t, p, D) {
+    const b = biq('bandpass', 1050 * p, 12, env(t, 0.9, 0.001, 0.07 * D));
+    osc('sine', 1050 * p, t, 0.12, b);
+    noise(t, 0.01, b);
+  },
+  conga(t, p, D) {
+    const o = osc('sine', 320 * p, t, 0.35 * D, env(t, 0.8, 0.001, 0.22 * D));
+    o.frequency.exponentialRampToValueAtTime(250 * p, t + 0.05);
+    noise(t, 0.015, biq('bandpass', 1800, 1, env(t, 0.25, 0.001, 0.012)));
+  },
+  pluck(t, p, D) {                       // short resonant synth note (A3)
+    const lp = biq('lowpass', 4000, 6, env(t, 0.32, 0.002, 0.28 * D));
+    lp.frequency.setValueAtTime(5200 * Math.min(p, 2), t); lp.frequency.exponentialRampToValueAtTime(300, t + 0.22 * D);
+    osc('sawtooth', 220 * p, t, 0.4 * D, lp);
+    osc('square', 220.8 * p, t, 0.4 * D, lp);
+  },
+  swell(t, p, D) {                       // rising filtered-noise riser that cuts off
+    const n = ctx!.createGain(); n.connect(bus);
+    n.gain.setValueAtTime(0.0001, t); n.gain.exponentialRampToValueAtTime(0.35, t + 0.35 * D); n.gain.setValueAtTime(0.0001, t + 0.36 * D);
+    const bp = biq('bandpass', 400 * p, 2, n);
+    bp.frequency.setValueAtTime(400 * p, t); bp.frequency.exponentialRampToValueAtTime(6000 * Math.min(p, 2), t + 0.35 * D);
+    noise(t, 0.4 * D, bp);
+  },
 };
 
 export function click(t: number, accent: boolean) {
@@ -186,12 +222,14 @@ export function click(t: number, accent: boolean) {
   osc('sine', accent ? 1760 : 1180, t, 0.05, e);
 }
 
+/** plays whatever sound this key is set to, with its own tuning/length on top of the kit and pitch knob */
 export function voice(id: string, t: number) {
-  const key = KEY_BY_ID[id];
-  if (!key?.v) return;
+  const cfg = keyConfig[id];
+  const fn = cfg && VOICES[cfg.voice];
+  if (!fn) return;
   const k = KITS[S.kit];
-  const p = Math.pow(2, (S.pitch - 0.5) * 2) * k.tune;
-  VOICES[key.v](t, p, k.decay);
+  const p = Math.pow(2, (S.pitch - 0.5) * 2 + cfg.tune / 12) * k.tune;
+  fn(t, p, k.decay * cfg.decay);
 }
 
 /* ---------- WAV export ---------- */

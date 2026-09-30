@@ -159,14 +159,16 @@ export function attachInteraction(stage: Stage, dev: Device) {
   canvas.addEventListener('dblclick', onDbl);
 
   /* ---------- keyboard ---------- */
+  const isField = (t: EventTarget | null) => t instanceof HTMLElement && !!t.closest('input, select, textarea, [contenteditable]');
   const onKeyDown = (e: KeyboardEvent) => {
+    if (isField(e.target)) return;
     if (e.code === 'Escape' && q.selStep >= 0) { clearSelection(); return; }
     const k = KEY_BY_CODE[e.code];
     if (!k || e.metaKey || e.ctrlKey || e.altKey) return;
     e.preventDefault();
     if (!e.repeat) press(k);
   };
-  const onKeyUp = (e: KeyboardEvent) => { const k = KEY_BY_CODE[e.code]; if (k) release(k); };
+  const onKeyUp = (e: KeyboardEvent) => { if (isField(e.target)) return; const k = KEY_BY_CODE[e.code]; if (k) release(k); };
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('keyup', onKeyUp);
 

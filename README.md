@@ -26,9 +26,15 @@ npm run build && npm start
 Patterns, tempo, kit and knob positions autosave to `localStorage`. **export wav** renders the current
 pattern (two loops plus echo tail) faster than real time.
 
+**daily challenge** — a new brief every day (kit, tempo, a sound limit, a must-use sound and a twist),
+generated from the date so everyone gets the same one; rules tick off live, entries share with a link, and
+finished days build a streak (`lib/challenge.ts`). **starter beats** load six presets into a free slot
+(`lib/starters.ts`). **customise keys** — click a key to change its sound (23 voices), tune and length, and
+pick a keycap colourway (`lib/keyconfig.ts`). **guide** replays the first-visit walkthrough.
+
 **share beat** copies a link (or opens the share sheet on phones) with the current pattern and its sound
 settings packed into the URL hash — no server involved. Opening a link loads the beat into the first empty
-pattern slot. Format: `lib/share.ts`.
+pattern slot. Links also carry custom key sounds, the keycap colourway and challenge entries. Format: `lib/share.ts`.
 
 ## Layout
 

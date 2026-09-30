@@ -4,6 +4,12 @@ import {
 import { KEY_BY_ID, NUM_IDX, type Key } from './keys';
 import { ui } from './store';
 import { encodeBeat, readBeatFromHash } from './share';
+import { COLORWAYS, keyConfig, look, setKeyConfig } from './keyconfig';
+import { challengeFor, markDone, todaysChallenge, checkChallenge, type Challenge } from './challenge';
+import { STARTERS, starterPattern } from './starters';
+
+/** the 3D view registers these so changes made from panels show up on the device */
+export const hooks = { syncControls: () => {}, applyLook: () => {} };
 
 const STORE = 'beatpad.v2';
 const newPat = () => Array.from({ length: 16 }, () => new Set<string>());
@@ -34,6 +40,7 @@ export function flush() {
     localStorage.setItem(STORE, JSON.stringify({
       P: q.P, bpm: S.bpm, kit: S.kit, filter: S.filter, echo: S.echo, pitch: S.pitch, vol: S.vol, swing: S.swing,
       pats: patterns.map((p) => p.map((set) => [...set])),
+      keys: keyConfig, colorway: look.colorway,
     }));
   } catch { /* storage unavailable */ }
 }
@@ -48,6 +55,9 @@ export function load() {
       (Array.isArray(ids) ? ids : []).forEach((id: string) => KEY_BY_ID[id]?.v && patterns[i][st].add(id));
     }));
     q.P = clamp(d.P | 0, 0, 8);
+    if (d.keys && typeof d.keys === 'object') setKeyConfig(d.keys);
+    if (Number.isInteger(d.colorway) && COLORWAYS[d.colorway]) look.colorway = d.colorway;
+    ui.set({ colorway: look.colorway });
   } catch { /* corrupt or unavailable */ }
 }
 
@@ -89,14 +99,14 @@ export function disposeSequencer() {
 
 /* ---------- UI sync ---------- */
 export function drawSteps() {
-  ui.set({ has: pat().map((s) => s.size > 0), sel: q.selStep });
+  ui.set({ has: pat().map((s) => s.size > 0), sel: q.selStep, rev: ui.get().rev + 1 });
 }
 export function updatePatUI() {
   ui.set({ pat: q.P + 1 + (q.pendingP >= 0 ? ' → ' + (q.pendingP + 1) : '') });
   drawSteps();
 }
 export function syncState() {
-  ui.set({ state: S.rec ? 'recording' : S.playing ? 'playing' : 'stopped', bpm: Math.round(S.bpm), kit: KITS[S.kit].name });
+  ui.set({ state: S.rec ? 'recording' : S.playing ? 'playing' : 'stopped', bpm: Math.round(S.bpm), kit: KITS[S.kit].name, rev: ui.get().rev + 1 });
 }
 export function setCur(s: number) { q.cur = s; ui.set({ cur: s }); }
 export const setHit = (hit: string) => ui.set({ hit });
@@ -143,7 +153,9 @@ export function press(k: Key) {
   if (q.recHeld && k.id in NUM_IDX) { q.recUsed = true; setPattern(NUM_IDX[k.id]); return; }
   if (q.delHeld) { pat().forEach((set) => set.delete(k.id)); q.delUsed = true; drawSteps(); save(); setHit('erased ' + k.name); return; }
   voice(k.id, audioTime());
-  if (k.id === 'k1' || k.id === 'k0') q.pulse = 1;
+  ui.set({ hits: ui.get().hits + 1 });
+  if (keyConfig[k.id]?.voice === 'kick' || keyConfig[k.id]?.voice === 'sub' || keyConfig[k.id]?.voice === 'kick2') q.pulse = 1;
+  if (ui.get().panel === 'keys') { ui.set({ editKey: k.id }); setHit('editing ' + (k.L.t ?? k.id) + ' key'); return; }
   if (q.selStep >= 0) {
     const set = pat()[q.selStep], had = set.has(k.id);
     if (had) set.delete(k.id); else set.add(k.id);
@@ -172,16 +184,66 @@ export function paramChanged(k: 'filter' | 'echo' | 'vol' | 'bpm' | 'kit' | 'pit
   syncState(); save();
 }
 
+/* ---------- loading beats into a slot ---------- */
+/** first empty pattern slot; falls back to the current one (after asking) when all 9 hold something */
+function freeSlot(): number | null {
+  const i = patterns.findIndex((p) => p.every((set) => set.size === 0));
+  if (i >= 0) return i;
+  return window.confirm(`All 9 patterns are in use. Replace pattern ${q.P + 1}?`) ? q.P : null;
+}
+function loadIntoSlot(slot: number, pattern: Set<string>[], params: Partial<typeof S>) {
+  patterns[slot].forEach((set, st) => { set.clear(); pattern[st].forEach((id) => set.add(id)); });
+  if (S.playing && slot !== q.P) q.pendingP = slot; else { q.P = slot; q.pendingP = -1; }
+  q.selStep = -1;
+  Object.assign(S, params);
+  S.kit = clamp(S.kit | 0, 0, KITS.length - 1);
+  (['filter', 'echo', 'bpm', 'kit'] as const).forEach(apply);
+  hooks.syncControls();
+  save(); updatePatUI(); syncState();
+}
+
+export function loadStarter(id: string) {
+  const st = STARTERS.find((x) => x.id === id);
+  if (!st) return;
+  const slot = freeSlot();
+  if (slot == null) return;
+  loadIntoSlot(slot, starterPattern(st), { bpm: st.bpm, kit: st.kit, swing: st.swing, filter: st.filter, echo: st.echo });
+  setHit(`${st.name} → pattern ${slot + 1}`);
+  ui.set({ hint: S.playing ? 'starts on the next bar' : 'press ○ to play' });
+}
+
+/* ---------- daily challenge ---------- */
+export function startChallenge() {
+  const c = todaysChallenge();
+  const slot = freeSlot();
+  if (slot == null) return;
+  loadIntoSlot(slot, Array.from({ length: 16 }, () => new Set<string>()), { bpm: c.bpm, kit: c.kit, swing: c.twist === 'swing' ? 0.45 : 0 });
+  ui.set({ challengeEntry: c.date, hint: `challenge #${c.no} — build it in pattern ${slot + 1}` });
+  setHit('challenge #' + c.no);
+}
+export const challengeStatus = (c: Challenge = todaysChallenge()) => checkChallenge(c, pat());
+
+/* ---------- key customisation ---------- */
+export function keysChanged() { save(); ui.set({ rev: ui.get().rev + 1 }); }
+export function setColorway(i: number) {
+  look.colorway = clamp(i | 0, 0, COLORWAYS.length - 1);
+  hooks.applyLook(); save(); ui.set({ colorway: look.colorway });
+}
+
 /* ---------- share links ---------- */
-export function shareUrl() {
-  const hash = encodeBeat({ pattern: pat(), bpm: S.bpm, kit: S.kit, swing: S.swing, filter: S.filter, echo: S.echo, pitch: S.pitch });
+export function shareUrl(challengeDate?: string) {
+  const hash = encodeBeat({
+    pattern: pat(), bpm: S.bpm, kit: S.kit, swing: S.swing, filter: S.filter, echo: S.echo, pitch: S.pitch,
+    colorway: look.colorway, keys: keyConfig, challenge: challengeDate,
+  });
   return `${location.origin}${location.pathname}#beat=${hash}`;
 }
 
-export async function shareBeat() {
+export async function shareBeat(challengeDate?: string) {
   if (!pat().some((set) => set.size)) { ui.set({ hint: 'nothing to share — pattern is empty' }); return; }
-  const url = shareUrl();
-  const title = 'A beat I made on Beat Pad';
+  const url = shareUrl(challengeDate);
+  const title = challengeDate ? `My entry for Beat Pad daily challenge #${challengeFor(challengeDate).no}` : 'A beat I made on Beat Pad';
+  if (challengeDate) markDone(challengeDate);
   try {
     // phones get the native share sheet; desktops get the link on the clipboard
     if (navigator.share && matchMedia('(pointer: coarse)').matches) {
@@ -206,17 +268,17 @@ export function importFromHash(): boolean {
   if (!beat) return false;
   let slot = patterns.findIndex((p) => p.every((set) => set.size === 0));
   if (slot < 0) slot = q.P;
-  patterns[slot].forEach((set, st) => { set.clear(); beat.pattern[st].forEach((id) => set.add(id)); });
-  q.P = slot; q.pendingP = -1; q.selStep = -1;
-  Object.assign(S, {
-    bpm: beat.bpm, kit: clamp(beat.kit, 0, KITS.length - 1), swing: beat.swing,
-    filter: beat.filter, echo: beat.echo, pitch: beat.pitch,
-  });
-  (['filter', 'echo', 'bpm', 'kit'] as const).forEach(apply);
   history.replaceState(null, '', location.pathname + location.search);   // a reload shouldn't import it again
-  save(); updatePatUI(); syncState();
+  // the beat's own sounds and keycaps come with it
+  if (beat.keys) setKeyConfig(beat.keys);
+  if (beat.colorway != null) { look.colorway = beat.colorway; hooks.applyLook(); ui.set({ colorway: look.colorway }); }
+  loadIntoSlot(slot, beat.pattern, {
+    bpm: beat.bpm, kit: beat.kit, swing: beat.swing, filter: beat.filter, echo: beat.echo, pitch: beat.pitch,
+  });
   setHit('shared beat → pattern ' + (slot + 1));
-  ui.set({ hint: 'loaded a shared beat · press ○ to play' });
+  ui.set({
+    hint: beat.challenge ? `daily challenge #${challengeFor(beat.challenge).no} entry · press ○ to play` : 'loaded a shared beat · press ○ to play',
+  });
   return true;
 }
 

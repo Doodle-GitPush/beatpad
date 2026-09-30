@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { S } from '../audio';
 import { KEYS, type Key } from '../keys';
+import { capFor } from '../keyconfig';
 import type { Materials } from './materials';
 import {
   Dz, W, KEY_BOTTOM, KEY_H, RoundedBoxGeometry, bumpGeo, drawLegend, gearGeo, getFont, keyGeo, slab,
@@ -9,11 +10,11 @@ import {
 export type KnobKey = 'filter' | 'echo' | 'pitch' | 'swing';
 
 export interface KeyView {
-  key: Key; grp: THREE.Group; canvas: HTMLCanvasElement; tex: THREE.CanvasTexture;
+  key: Key; grp: THREE.Group; canvas: HTMLCanvasElement; tex: THREE.CanvasTexture; mat: THREE.MeshPhysicalMaterial;
   y0: number; off: number; rx: number; rz: number; w: number; d: number; baseColor: string; curColor: string;
 }
 export interface KnobView { grp: THREE.Group; spin: THREE.Group; target: number; cur: number }
-export interface Led { m: THREE.MeshStandardMaterial; gm: THREE.MeshBasicMaterial }
+export interface Led { m: THREE.MeshStandardMaterial; gm: THREE.MeshBasicMaterial; pos: THREE.Vector3 }
 
 export type Pickable =
   | { type: 'key'; k: Key }
@@ -55,7 +56,8 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
     const w = wpx / 100 - 0.03, d = dpx / 100 - 0.03;
     const grp = new THREE.Group();
     grp.position.set(W(x), KEY_BOTTOM + KEY_H / 2, Dz(y));
-    const mat = key.style === 'orange' ? MAT.keyO : key.style === 'dark' ? MAT.keyD : MAT.keyW;
+    // each cap owns its material so a colourway can recolour it
+    const mat = (key.style === 'orange' ? MAT.keyO : key.style === 'dark' ? MAT.keyD : MAT.keyW).clone();
     add(new THREE.Mesh(keyGeo(w, d), mat), grp);
 
     // legend decal on the top face
@@ -63,7 +65,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(tw * 256); canvas.height = Math.round(td * 256);
     const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
-    const baseColor = key.style === 'orange' ? '#fde6d9' : key.style === 'dark' ? '#d6d6d6' : '#6a6964';
+    const baseColor = capFor(key).legend;
     drawLegend(canvas, key.L, baseColor); tex.needsUpdate = true;
     const decal = new THREE.Mesh(
       new THREE.PlaneGeometry(tw, td),
@@ -74,7 +76,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
 
     scene.add(grp);
     pickable(grp, { type: 'key', k: key });
-    return { key, grp, canvas, tex, y0: grp.position.y, off: 0, rx: 0, rz: 0, w, d, baseColor, curColor: baseColor };
+    return { key, grp, canvas, tex, mat, y0: grp.position.y, off: 0, rx: 0, rz: 0, w, d, baseColor, curColor: baseColor };
   });
 
   /* ---------- panels ---------- */
@@ -220,11 +222,23 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
       const hit = new THREE.Mesh(hitG, new THREE.MeshBasicMaterial());
       hit.position.set(x, PANEL_TOP + 0.05, z); hit.updateMatrixWorld(true);
       pickable(hit, { type: 'step', i });
-      leds.push({ m, gm });
+      leds.push({ m, gm, pos: new THREE.Vector3(x, PANEL_TOP, z) });
     }
   }
 
-  return { interactive, keys, knobs, setKnobVisual, FADER, faderCap, setFaderVisual, rollerMesh, JOG, jogGrp, leds };
+  /** recolour every cap for the current colourway */
+  const applyLook = () => {
+    keys.forEach((v) => {
+      const { cap, legend } = capFor(v.key);
+      v.mat.color.set(cap);
+      const lum = v.mat.color.getHSL({ h: 0, s: 0, l: 0 }).l;
+      v.mat.roughness = lum < 0.2 ? 0.14 : 0.3;       // dark caps read glossier
+      v.baseColor = legend; v.curColor = '';          // force the legend to redraw
+    });
+  };
+  applyLook();
+
+  return { interactive, keys, knobs, setKnobVisual, FADER, faderCap, setFaderVisual, rollerMesh, JOG, jogGrp, leds, applyLook };
 }
 
 export type Device = ReturnType<typeof buildDevice>;

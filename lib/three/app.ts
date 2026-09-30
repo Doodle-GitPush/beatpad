@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { KEYS } from '../keys';
-import { disposeSequencer, drawSteps, flush, importFromHash, load, pat, q, setCur, syncState, uiQ, updatePatUI } from '../sequencer';
+import { disposeSequencer, drawSteps, flush, hooks, importFromHash, load, pat, q, setCur, syncState, uiQ, updatePatUI } from '../sequencer';
+import { anchors } from '../anchors';
 import { S, closeAudio, hasAudio, audioTime } from '../audio';
 import { ui } from '../store';
 import { applyTheme, hasSavedTheme, readTheme } from '../theme';
@@ -15,6 +16,7 @@ const C_HOT = new THREE.Color('#ff6a2a'), C_WHITE = new THREE.Color('#ffffff');
 function legendColor(v: KeyView, t: number) {
   const { key, baseColor } = v;
   const on = t < key.flashUntil || key.held;
+  if (ui.get().panel === 'keys' && ui.get().editKey === key.id) return Math.floor(t / 400) % 2 ? '#ff6a2a' : baseColor;   // being edited
   if (key.id === 'play') return S.playing ? '#d9582a' : baseColor;
   if (key.id === 'rec') return S.rec ? (Math.floor(t / 500) % 2 ? '#8c3a1c' : '#ff5a1f') : q.recHeld ? '#d9582a' : baseColor;
   if (key.id === 'metro') return S.metro ? '#ff8a4f' : baseColor;
@@ -36,13 +38,32 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
   progress(0.66, 'machining the parts'); await nextFrame();
   const dev = buildDevice(stage.scene, createMaterials());
 
-  load();
-  importFromHash();
   const syncControls = () => {
-    (Object.keys(dev.knobs) as KnobKey[]).forEach((k) => dev.setKnobVisual(k, true));
+    (Object.keys(dev.knobs) as KnobKey[]).forEach((k) => dev.setKnobVisual(k));
     dev.setFaderVisual();
   };
-  syncControls();
+  hooks.syncControls = syncControls;
+  hooks.applyLook = dev.applyLook;
+  load();
+  dev.applyLook();
+  importFromHash();
+  (Object.keys(dev.knobs) as KnobKey[]).forEach((k) => dev.setKnobVisual(k, true));
+  dev.setFaderVisual();
+
+  // screen positions for the guide
+  const tmp = new THREE.Vector3();
+  const toScreen = (v: THREE.Vector3) => {
+    tmp.copy(v).project(stage.camera);
+    if (tmp.z > 1) return null;
+    return { x: (tmp.x * 0.5 + 0.5) * window.innerWidth, y: (-tmp.y * 0.5 + 0.5) * window.innerHeight };
+  };
+  const keyTop = (id: string) => () => {
+    const g = dev.keys.find((v) => v.key.id === id)!.grp;
+    return toScreen(g.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.25, 0)));
+  };
+  anchors.keys = keyTop('k5');
+  anchors.play = keyTop('play');
+  anchors.steps = () => toScreen(dev.leds[7].pos.clone().lerp(dev.leds[8].pos, 0.5));
   updatePatUI(); syncState();
   const onHash = () => { if (importFromHash()) syncControls(); };   // share link pasted into an open tab
   window.addEventListener('hashchange', onHash);
@@ -136,6 +157,8 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
   ui.set({ ready: true });
 
   const stop = () => {
+    hooks.syncControls = () => {}; hooks.applyLook = () => {};
+    Object.keys(anchors).forEach((k) => delete anchors[k]);
     cancelAnimationFrame(raf);
     window.removeEventListener('resize', onResize);
     window.removeEventListener('pointermove', onPointer);
