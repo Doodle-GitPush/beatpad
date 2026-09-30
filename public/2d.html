@@ -4,17 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beat Pad</title>
+<meta name="theme-color" content="#d6d5d2">
+<script>(function(){try{var t=localStorage.getItem("beatpad.theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var d=document.documentElement;d.setAttribute("data-theme",t);d.style.colorScheme=t}catch(e){}})()</script>
 <style>
-  :root{
-    --bg:#d5d4d1;
+  :root,[data-theme="light"]{
+    --bg:#d5d4d1; --bg-hi:#dedddb; --bg-lo:#c9c8c5;
     --ink:#3b3b39;
     --muted:#8a8984;
     --orange:#d9582a;
+    --step:#c3c2bd; --step-has:#8d8c87; --led-off:#b8b7b2; --led-play:#5a5a57;
+    --shadow-far:rgba(40,38,34,.42); --shadow-near:rgba(0,0,0,.35);
+  }
+  [data-theme="dark"]{
+    --bg:#1c1c1b; --bg-hi:#2e2e2b; --bg-lo:#121211;
+    --ink:#ecebe7;
+    --muted:#8f8d87;
+    --orange:#ff6a2a;
+    --step:#34332f; --step-has:#6d6b66; --led-off:#3a3936; --led-play:#cfcdc7;
+    --shadow-far:rgba(0,0,0,.75); --shadow-near:rgba(0,0,0,.7);
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{
-    background:radial-gradient(ellipse at 50% 40%, #dedddb 0%, var(--bg) 60%, #c9c8c5 100%);
+    background:radial-gradient(ellipse at 50% 40%, var(--bg-hi) 0%, var(--bg) 60%, var(--bg-lo) 100%);
+    transition:background .3s, color .3s;
     color:var(--ink);
     font-family:Inter, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -27,6 +40,12 @@
   }
   header b{color:var(--ink);font-weight:500}
   header a{color:var(--ink)}
+  .theme-btn{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-left:2px;
+    background:none;border:1px solid color-mix(in srgb, var(--ink) 25%, transparent);border-radius:999px;
+    padding:2px 9px 2px 7px;color:var(--ink);cursor:pointer;font:inherit;letter-spacing:inherit;text-transform:inherit}
+  .theme-btn:hover{border-color:color-mix(in srgb, var(--ink) 55%, transparent)}
+  .theme-btn:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+  .theme-btn svg{width:12px;height:12px}
 
   /* ---------- stage / scaling ---------- */
   .fit{position:relative}
@@ -37,8 +56,8 @@
     --grain-l:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .11 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
     --grain-d:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .6 0 0 0 0 .6 0 0 0 0 .6 0 0 0 .16 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
-  .ground{position:absolute;left:24px;right:24px;bottom:-34px;height:70px;border-radius:50%;background:rgba(40,38,34,.42);filter:blur(28px)}
-  .ground.near{left:8px;right:8px;bottom:-8px;height:24px;background:rgba(0,0,0,.35);filter:blur(10px)}
+  .ground{position:absolute;left:24px;right:24px;bottom:-34px;height:70px;border-radius:50%;background:var(--shadow-far);filter:blur(28px)}
+  .ground.near{left:8px;right:8px;bottom:-8px;height:24px;background:var(--shadow-near);filter:blur(10px)}
 
   /* ---------- numpad module ---------- */
   .pad{
@@ -206,14 +225,14 @@
     font:500 12px "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;letter-spacing:.06em;color:var(--muted);text-transform:lowercase}
   .readout b{color:var(--ink);font-weight:500}
   .readout .state{display:inline-flex;align-items:center;gap:8px}
-  .led{width:8px;height:8px;border-radius:50%;background:#b8b7b2;box-shadow:inset 0 1px 1px rgba(0,0,0,.25)}
-  .led.play{background:#5a5a57}
+  .led{width:8px;height:8px;border-radius:50%;background:var(--led-off);box-shadow:inset 0 1px 1px rgba(0,0,0,.25)}
+  .led.play{background:var(--led-play)}
   .led.rec{background:var(--orange);box-shadow:0 0 6px rgba(217,88,42,.7)}
   .stats{display:flex;gap:22px;flex-wrap:wrap}
   .steps{display:flex;gap:10px}
   .steps .grp{display:flex;gap:4px}
-  .steps i{width:12px;height:12px;border-radius:3px;background:#c3c2bd;box-shadow:inset 0 1px 1px rgba(0,0,0,.15);transition:background .05s}
-  .steps i.has{background:#8d8c87}
+  .steps i{width:12px;height:12px;border-radius:3px;background:var(--step);box-shadow:inset 0 1px 1px rgba(0,0,0,.15);transition:background .05s}
+  .steps i.has{background:var(--step-has)}
   .steps i.cur{background:var(--ink)}
   .steps i.has.cur{background:var(--orange)}
   .help{width:var(--w,1003px);max-width:100%;margin:18px 0 0;font:400 12px/1.7 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;color:var(--muted)}
@@ -223,7 +242,7 @@
 </head>
 <body>
 
-<header><span><b>beat pad</b> — 16 step drum instrument</span><span><span id="hint">tap any key to start audio</span> · <a href="/">3d version</a></span></header>
+<header><span><b>beat pad</b> — 16 step drum instrument</span><span><span id="hint">tap any key to start audio</span> · <a href="/">3d version</a> · <button type="button" class="theme-btn" id="theme-btn"></button></span></header>
 
 <div class="fit" id="fit">
   <div class="stage" id="stage">
@@ -689,6 +708,26 @@
   jog.addEventListener('wheel', e => { e.preventDefault(); turn(-e.deltaY / 6); }, {passive:false});
 
   drawSteps(); syncState();
+})();
+
+// light / dark: same saved setting as the 3D page
+(() => {
+  const KEY = 'beatpad.theme', btn = document.getElementById('theme-btn');
+  const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"/></svg>', MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></svg>';
+  const current = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const saved = () => { try { const t = localStorage.getItem(KEY); return t === 'light' || t === 'dark'; } catch { return false; } };
+  function apply(t, persist) {
+    const d = document.documentElement;
+    d.setAttribute('data-theme', t); d.style.colorScheme = t;
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', t === 'dark' ? '#1c1c1b' : '#d6d5d2');
+    if (persist) try { localStorage.setItem(KEY, t); } catch {}
+    const next = t === 'dark' ? 'light' : 'dark';
+    btn.innerHTML = (t === 'dark' ? SUN : MOON) + next;
+    btn.title = btn.ariaLabel = 'Switch to ' + next + ' mode';
+  }
+  apply(current(), false);
+  btn.addEventListener('click', () => { apply(current() === 'dark' ? 'light' : 'dark', true); btn.blur(); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => { if (!saved()) apply(e.matches ? 'dark' : 'light', false); });
 })();
 </script>
 </body>
