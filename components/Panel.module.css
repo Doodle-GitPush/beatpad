@@ -1,10 +1,7 @@
-.tools {
-  position: fixed; top: 48px; left: 24px; z-index: 6;
-  display: flex; flex-wrap: wrap; gap: 6px; max-width: calc(100vw - 48px);
-}
+.tools { display: flex; gap: 6px; min-width: 0; }
 .pill {
   display: inline-flex; align-items: center; gap: 7px;
-  padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  height: 34px; padding: 0 13px; border-radius: 999px; cursor: pointer; white-space: nowrap;
   background: var(--panel-bg); border: 1px solid var(--panel-line);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   color: var(--ink); font: 500 11px var(--font-mono), monospace; letter-spacing: 0.06em; text-transform: lowercase;
@@ -15,8 +12,8 @@
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 6px var(--orange); }
 
 .panel {
-  position: fixed; top: 88px; left: 24px; z-index: 6; width: 320px;
-  max-height: calc(100vh - 200px); overflow: auto; overscroll-behavior: contain;
+  position: fixed; top: 64px; left: 20px; z-index: 6; width: 330px;
+  max-height: calc(100vh - 150px); overflow: auto; overscroll-behavior: contain;
   background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px;
   backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
   box-shadow: var(--panel-shadow); color: var(--ink);
@@ -87,6 +84,7 @@
 .empty { color: var(--muted); padding: 8px 0 4px; }
 
 @media (max-width: 700px) {
-  .tools { top: auto; bottom: 64px; left: 12px; right: 12px; justify-content: center; }
-  .panel { top: auto; bottom: 108px; left: 12px; right: 12px; width: auto; max-height: 55vh; }
+.tools { max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .tools::-webkit-scrollbar { display: none; }
+  .panel { top: auto; bottom: 110px; left: 10px; right: 10px; width: auto; max-height: 52vh; }
 }

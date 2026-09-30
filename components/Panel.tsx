@@ -30,7 +30,6 @@ export function Tools() {
       {tab('challenge', <>{!doneToday && <i className={s.dot} aria-hidden="true" />}daily challenge #{c.no}</>)}
       {tab('starters', 'starter beats')}
       {tab('keys', 'customise keys')}
-      <button type="button" className={s.pill} onClick={(e) => { ui.set({ guide: 0, panel: 'none' }); e.currentTarget.blur(); }}>guide</button>
     </div>
   );
 }
