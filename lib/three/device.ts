@@ -37,7 +37,12 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
   {
     const frame = add(new THREE.Mesh(slab(4.12 - 0.16, 5.95 - 0.16, 0.52, 0.16, 0.08, 3.94, 5.77, 0.12), MAT.alu));
     frame.position.set(W(206), 0, Dz(297.5));
-    const floor = add(new THREE.Mesh(new RoundedBoxGeometry(3.94, 0.5, 5.77, 3, 0.06), MAT.well), scene, false, true);
+    // the well floor is the same bead-blasted aluminium as the frame; UVs scaled to world units
+    // so the grain matches the frame (whose extruded UVs are already in world units)
+    const floorGeo = new RoundedBoxGeometry(3.94, 0.5, 5.77, 3, 0.06);
+    const uv = floorGeo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 3.94, uv.getY(i) * 5.77);
+    const floor = add(new THREE.Mesh(floorGeo, MAT.alu), scene, false, true);
     floor.position.set(W(206), 0.25, Dz(297.5));
   }
 

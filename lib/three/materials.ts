@@ -69,7 +69,6 @@ export function createMaterials() {
 
   return {
     alu: makeAlu(),
-    well: new THREE.MeshStandardMaterial({ color: '#0c0c0c', roughness: 0.85 }),
     // satin-coated moulding: the clear coat picks up the studio softboxes
     panel: new THREE.MeshPhysicalMaterial({ color: '#2c2c2c', roughness: 0.6, metalness: 0.06, bumpMap: grain, bumpScale: 0.6, clearcoat: 0.22, clearcoatRoughness: 0.38, envMapIntensity: 1 }),
     keyW: key('#dddcd6', 0.3),
