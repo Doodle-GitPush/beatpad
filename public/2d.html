@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#d6d5d2">
 <script>(function(){try{var t=localStorage.getItem("beatpad.theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var d=document.documentElement;d.setAttribute("data-theme",t);d.style.colorScheme=t}catch(e){}})()</script>
 <style>
+  @font-face{font-family:"Geist";src:url("/fonts/Geist-Variable.woff2") format("woff2");font-weight:100 900;font-display:swap}
+  @font-face{font-family:"Geist Mono";src:url("/fonts/GeistMono-Variable.woff2") format("woff2");font-weight:100 900;font-display:swap}
   :root,[data-theme="light"]{
     --bg:#d5d4d1; --bg-hi:#dedddb; --bg-lo:#c9c8c5;
     --ink:#3b3b39;
@@ -29,14 +31,14 @@
     background:radial-gradient(ellipse at 50% 40%, var(--bg-hi) 0%, var(--bg) 60%, var(--bg-lo) 100%);
     transition:background .3s, color .3s;
     color:var(--ink);
-    font-family:Inter, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-family:"Geist", system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     min-height:100vh;padding:24px 16px;overflow-x:hidden;
     -webkit-user-select:none;user-select:none;
   }
   header{
     width:var(--w,1003px);max-width:100%;display:flex;justify-content:space-between;align-items:baseline;
-    font:500 11px "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;letter-spacing:.08em;text-transform:lowercase;color:var(--muted);margin-bottom:22px;
+    font:500 11px "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;letter-spacing:.08em;text-transform:lowercase;color:var(--muted);margin-bottom:22px;
   }
   header b{color:var(--ink);font-weight:500}
   header a{color:var(--ink)}
@@ -92,7 +94,7 @@
       radial-gradient(130% 100% at 50% 0%, #fbfaf7 0%, #f0efea 50%, #e4e3dd 100%);
     box-shadow:0 1px 1px rgba(0,0,0,.1), 0 3px 5px rgba(0,0,0,.08), inset 0 1px 0 #fff, inset 0 -1px 2px rgba(0,0,0,.05);
     display:flex;align-items:center;justify-content:center;flex-direction:column;
-    color:#62615d;font:400 13px Inter, system-ui, -apple-system, "Segoe UI", sans-serif;transition:transform .05s ease-out;
+    color:#62615d;font:400 13px "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;transition:transform .05s ease-out;
   }
   .face .t{font-size:11.5px;letter-spacing:.02em}
   .face .sym{font-size:22px;font-weight:300;line-height:1}
@@ -153,7 +155,7 @@
   .screw{position:absolute;width:12px;height:12px;border-radius:50%;
     background:radial-gradient(circle, #0c0c0c 0 2.4px, #3a3a3a 3px, #515151 4px, #242424 6px);
     box-shadow:0 1px 0 rgba(255,255,255,.14), inset 0 1px 2px rgba(0,0,0,.9)}
-  .lbl{position:absolute;transform:translateX(-50%);font:500 8.5px Inter, system-ui, -apple-system, "Segoe UI", sans-serif;letter-spacing:.16em;
+  .lbl{position:absolute;transform:translateX(-50%);font:500 8.5px "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;letter-spacing:.16em;
     text-transform:uppercase;color:rgba(255,255,255,.3);white-space:nowrap;pointer-events:none;text-shadow:0 1px 0 rgba(0,0,0,.5)}
 
   /* knobs */
@@ -216,13 +218,13 @@
   .hinge{position:absolute;width:8px;height:44px;background:linear-gradient(90deg,#161616,#3a3a3a,#161616);border-radius:2px}
 
   .hud{position:absolute;transform:translate(-50%,-100%);padding:4px 8px;border-radius:4px;background:#f1f0ec;color:#222;
-    font:500 11px "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;pointer-events:none;
+    font:500 11px "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;pointer-events:none;
     box-shadow:0 4px 10px rgba(0,0,0,.35);opacity:0;transition:opacity .15s;z-index:5}
   .hud.show{opacity:1}
 
   /* ---------- readout ---------- */
   .readout{width:var(--w,1003px);max-width:100%;margin-top:34px;display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center;justify-content:space-between;
-    font:500 12px "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;letter-spacing:.06em;color:var(--muted);text-transform:lowercase}
+    font:500 12px "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;letter-spacing:.06em;color:var(--muted);text-transform:lowercase}
   .readout b{color:var(--ink);font-weight:500}
   .readout .state{display:inline-flex;align-items:center;gap:8px}
   .led{width:8px;height:8px;border-radius:50%;background:var(--led-off);box-shadow:inset 0 1px 1px rgba(0,0,0,.25)}
@@ -235,7 +237,7 @@
   .steps i.has{background:var(--step-has)}
   .steps i.cur{background:var(--ink)}
   .steps i.has.cur{background:var(--orange)}
-  .help{width:var(--w,1003px);max-width:100%;margin:18px 0 0;font:400 12px/1.7 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;color:var(--muted)}
+  .help{width:var(--w,1003px);max-width:100%;margin:18px 0 0;font:400 12px/1.7 "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;color:var(--muted)}
   .help b{color:var(--ink);font-weight:500}
   @media (max-width:640px){ .steps{gap:6px} .steps .grp{gap:3px} .steps i{width:9px;height:9px} }
 </style>

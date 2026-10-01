@@ -5,7 +5,7 @@ import type { Legend } from '../keys';
 export { RoundedBoxGeometry };
 
 /** canvas text uses whatever font the page resolved (next/font), set once at mount */
-let FONT = 'Inter, "Helvetica Neue", Arial, sans-serif';
+let FONT = 'Geist, system-ui, "Helvetica Neue", Arial, sans-serif';
 export const setFont = (f: string) => { if (f) FONT = f; };
 export const getFont = () => FONT;
 

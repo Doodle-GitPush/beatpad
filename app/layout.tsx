@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { IBM_Plex_Mono, Inter } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
 import { THEME_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
-const sans = Inter({ variable: '--font-sans', subsets: ['latin'], weight: ['300', '400', '500'] });
-const mono = IBM_Plex_Mono({ variable: '--font-mono', subsets: ['latin'], weight: ['400', '500'] });
+const sans = Geist({ variable: '--font-sans', subsets: ['latin'] });
+const mono = Geist_Mono({ variable: '--font-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Beat Pad 3D',

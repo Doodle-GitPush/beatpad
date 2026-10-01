@@ -53,6 +53,7 @@ export default function Overlay() {
           {u.ready && <><span className={s.sep} aria-hidden="true" /><Tools /></>}
         </div>
         <div className={s.actions}>
+          <a className={`${s.iconBtn} ${s.glass} ${s.textBtn}`} href="/2d.html" aria-label="Switch to the 2D version" title="Switch to the 2D version">2D</a>
           <button type="button" className={s.primary} onClick={blurAfter(() => shareBeat())} aria-label="Share this beat" title="Copy a link to this beat">
             <IconShare /><span className={s.primaryLabel}>share</span>
           </button>
