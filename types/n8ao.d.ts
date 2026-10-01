@@ -11,6 +11,7 @@ declare module 'n8ao' {
       color: Color;
       gammaCorrection: boolean;
       screenSpaceRadius: boolean;
+      halfRes: boolean;
     };
     setQualityMode(mode: 'Performance' | 'Low' | 'Medium' | 'High' | 'Ultra'): void;
   }

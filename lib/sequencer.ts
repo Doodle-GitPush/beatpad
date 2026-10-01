@@ -11,7 +11,7 @@ import { STARTERS, starterPattern } from './starters';
 /** the 3D view registers these so changes made from panels show up on the device */
 export const hooks = {
   syncControls: () => {}, applyLook: () => {}, invalidate: () => {},
-  setQuality: (q: 'auto' | 'high' | 'medium' | 'low') => { void q; },
+  setQuality: (q: 'auto' | 'ultra' | 'high' | 'medium' | 'low') => { void q; },
 };
 
 const STORE = 'beatpad.v2';

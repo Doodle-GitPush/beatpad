@@ -154,7 +154,7 @@ function HelpMenu({ close }: { close: () => void }) {
 }
 function QualityPicker() {
   const u = useUi();
-  const opts = ['auto', 'high', 'medium', 'low'] as const;
+  const opts = ['auto', 'ultra', 'high', 'medium', 'low'] as const;
   return (
     <>
       <div className={s.menuTitle}>graphics quality{u.quality === 'auto' && <> · using {u.tier}</>}</div>
@@ -164,7 +164,7 @@ function QualityPicker() {
             className={`${s.segBtn} ${u.quality === o ? s.segOn : ''}`} onClick={() => hooks.setQuality(o)}>{o}</button>
         ))}
       </div>
-      <p className={s.menuNote}>Auto picks for your device and steps down if things get choppy. Low turns off reflections and soft shadows.</p>
+      <p className={s.menuNote}>Auto picks for your device and steps down if things get choppy. Lower settings render fewer pixels; reflections and soft shadows stay on.</p>
     </>
   );
 }

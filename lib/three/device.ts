@@ -130,7 +130,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
     const grp = new THREE.Group(); grp.position.set(x, PANEL_TOP, z);
     const spin = new THREE.Group(); grp.add(spin);
     add(new THREE.Mesh(gearGeo(R, 0.3), MAT.knurl), spin);
-    add(new THREE.Mesh(new THREE.CylinderGeometry(R * 0.8, R * 0.82, 0.04, 40), MAT.kcap), spin).position.y = 0.334;
+    add(new THREE.Mesh(new THREE.CylinderGeometry(R * 0.8, R * 0.82, 0.04, 72), MAT.kcap), spin).position.y = 0.334;
     add(new THREE.Mesh(new RoundedBoxGeometry(0.028, 0.012, R * 0.42, 2, 0.005), MAT.mark), spin).position.set(0, 0.356, -R * 0.5);
     scene.add(grp); pickable(grp, { type: 'knob', key });
     knobs[key] = { grp, spin, target: 0, cur: 0 };
@@ -171,7 +171,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
   {
     add(new THREE.Mesh(new RoundedBoxGeometry(0.085, 0.03, 2.52, 2, 0.012), MAT.slot), scene, false, true)
       .position.set(FADER.x, FADER.y + 0.002, (FADER.z0 + FADER.z1) / 2);
-    add(new THREE.Mesh(new RoundedBoxGeometry(0.64, 0.3, 0.46, 3, 0.11), MAT.black), faderCap).position.y = 0.22;
+    add(new THREE.Mesh(new RoundedBoxGeometry(0.64, 0.3, 0.46, 6, 0.11), MAT.black), faderCap).position.y = 0.22;
     add(new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.006, 0.016), MAT.mark), faderCap).position.y = 0.373;
     faderCap.position.set(FADER.x, FADER.y, 0);
     scene.add(faderCap); pickable(faderCap, { type: 'fader' });
@@ -194,7 +194,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
   const rollerX = right.px(305), rollerZ = Dz(112);
   add(new THREE.Mesh(slab(0.9, 0.78, 0.05, 0.1, 0.03, 0.76, 0.64, 0.06), MAT.black)).position.set(rollerX, PANEL_TOP + 0.02, rollerZ);
   add(new THREE.Mesh(new RoundedBoxGeometry(0.78, 0.2, 0.66, 3, 0.05), MAT.slot), scene, false, true).position.set(rollerX, PANEL_TOP - 0.05, rollerZ);
-  const rollerGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.72, 48, 1); rollerGeo.rotateZ(Math.PI / 2);
+  const rollerGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.72, 96, 1); rollerGeo.rotateZ(Math.PI / 2);
   const rollerMesh = add(new THREE.Mesh(rollerGeo, MAT.roller));
   rollerMesh.position.set(rollerX, PANEL_TOP - 0.12, rollerZ);
   pickable(rollerMesh, { type: 'roller' });
@@ -204,7 +204,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
   const jogPts = [[0.0001, 0], [1.37, 0], [1.395, 0.02], [1.395, 0.3], [1.39, 0.35], [1.36, 0.37], [1.3, 0.375], [1.2, 0.36], [1.17, 0.33], [1.14, 0.318], [1.0, 0.31], [0.5, 0.302], [0.0001, 0.3]]
     .map(([r, y]) => new THREE.Vector2(r, y));
   const jogGrp = new THREE.Group(); jogGrp.position.set(JOG.x, JOG.y, JOG.z);
-  add(new THREE.Mesh(new THREE.LatheGeometry(jogPts, 128), MAT.jog), jogGrp);   // keep: fewer segments show as steps in the spun highlight
+  add(new THREE.Mesh(new THREE.LatheGeometry(jogPts, 160), MAT.jog), jogGrp);   // keep: fewer segments show as steps in the spun highlight
   const dimple = add(new THREE.Mesh(new THREE.CircleGeometry(0.08, 32), MAT.dimple), jogGrp, false, true);
   dimple.rotation.x = -Math.PI / 2; dimple.position.set(0, 0.316, -0.98); detail(dimple);
   scene.add(jogGrp); pickable(jogGrp, { type: 'jog' });

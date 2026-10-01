@@ -31,7 +31,7 @@ export function slab(w: number, d: number, depth: number, r: number, bevel: numb
     roundedRectShape(holeW, holeD, holeR, h);
     s.holes.push(h);
   }
-  const geo = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 5, curveSegments: 10 });
+  const geo = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 8, curveSegments: 16 });
   geo.rotateX(-Math.PI / 2);
   geo.translate(0, bevel, 0);
   return geo;
@@ -39,7 +39,7 @@ export function slab(w: number, d: number, depth: number, r: number, bevel: numb
 
 export const KEY_BOTTOM = 0.52, KEY_H = 0.42, TAPER = 0.12;
 export function keyGeo(w: number, d: number) {
-  const g = new RoundedBoxGeometry(w, KEY_H, d, 3, 0.09);
+  const g = new RoundedBoxGeometry(w, KEY_H, d, 6, 0.09);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const t = (p.getY(i) + KEY_H / 2) / KEY_H;           // 0 bottom → 1 top
@@ -52,7 +52,7 @@ export function keyGeo(w: number, d: number) {
 
 /** smooth raised mound (lathe): flat top out to `flat`, easing to the panel at R */
 export function bumpGeo(R: number, h: number, flat = 0) {
-  const pts: THREE.Vector2[] = [], N = 22;
+  const pts: THREE.Vector2[] = [], N = 40;
   for (let i = 0; i <= N; i++) {
     const r = (R * i) / N;
     const t = r <= flat ? 0 : (r - flat) / (R - flat);
@@ -60,7 +60,7 @@ export function bumpGeo(R: number, h: number, flat = 0) {
     pts.push(new THREE.Vector2(Math.max(r, 0.0001), h * (1 - s)));
   }
   pts.push(new THREE.Vector2(R, -0.01));
-  return new THREE.LatheGeometry(pts.reverse(), 56);
+  return new THREE.LatheGeometry(pts.reverse(), 96);
 }
 
 /** toothed knob body */

@@ -16,8 +16,8 @@ export interface UiState {
   /** guided tour step, -1 when hidden */
   guide: number;
   /** rendering quality setting and the tier actually in use */
-  quality: 'auto' | 'high' | 'medium' | 'low';
-  tier: 'high' | 'medium' | 'low';
+  quality: 'auto' | 'ultra' | 'high' | 'medium' | 'low';
+  tier: 'ultra' | 'high' | 'medium' | 'low';
   /** 0–1 load progress and what is happening, for the preloader */
   progress: number;
   loadStage: string;

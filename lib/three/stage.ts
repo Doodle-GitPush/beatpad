@@ -4,6 +4,7 @@ import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUnifo
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { N8AOPass } from 'n8ao';
 import { clamp } from '../audio';
 import type { Theme } from '../theme';
@@ -35,7 +36,11 @@ function studioEnv(renderer: THREE.WebGLRenderer) {
   box(20, 4, 1.0, 0, 3, 22);      // low front bounce
   const card = new THREE.Mesh(new THREE.PlaneGeometry(26, 7), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1).multiplyScalar(2.6), side: THREE.DoubleSide, toneMapped: false }));
   card.position.set(0, -0.8, 10); card.rotation.x = -Math.PI / 2 + 0.5; s.add(card); // bright band in the frame's front face
-  const tex = pmrem.fromScene(s, 0.01).texture;
+  // fromScene() is fixed at 256 px per face, which makes every reflection soft; render a 1024 cube instead
+  const cubeRT = new THREE.WebGLCubeRenderTarget(1024, { type: THREE.HalfFloatType, generateMipmaps: false });
+  new THREE.CubeCamera(0.1, 100, cubeRT).update(renderer, s);
+  const tex = pmrem.fromCubemap(cubeRT.texture).texture;
+  cubeRT.dispose();
   pmrem.dispose();
   s.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); (m.material as THREE.Material | undefined)?.dispose(); });
   return tex;
@@ -50,7 +55,7 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
   let DPR = pixelRatioFor(TIERS[tier]);
   renderer.setPixelRatio(DPR);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.92;
+  renderer.toneMappingExposure = 0.9;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;          // the light never moves: re-render shadows only when parts move
@@ -78,9 +83,9 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
   camera.layers.enable(DETAIL_LAYER);
 
   // key light (casts the shadows), an area softbox for glints, cool rim
-  const hemi = new THREE.HemisphereLight(0xfffaf2, 0x8f8d88, 0.35);
+  const hemi = new THREE.HemisphereLight(0xfffaf2, 0x8f8d88, 0.2);   // low fill → surfaces keep their shape
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff6ea, 2.2);
+  const sun = new THREE.DirectionalLight(0xfff6ea, 2.55);
   sun.position.set(-2.5, 14, 5);
   sun.castShadow = true;
   sun.shadow.mapSize.set(TIERS[tier].shadowMap, TIERS[tier].shadowMap);
@@ -101,7 +106,7 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
     softbox.lookAt(0, 0, 0);
     return true;
   };
-  const rim = new THREE.DirectionalLight(0xe9eef7, 0.7); rim.position.set(7, 4, -7); scene.add(rim);
+  const rim = new THREE.DirectionalLight(0xe9eef7, 1.0); rim.position.set(7, 4, -7); scene.add(rim);
 
   // glossy tabletop reflection (low resolution: it is blurred anyway)
   const reflSize = () => {
@@ -134,16 +139,17 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
     const dark = t === 'dark';
     groundMat.opacity = dark ? 0.55 : 0.22;
     contactMat.opacity = dark ? 0.85 : 0.5;
-    hemi.intensity = dark ? 0.18 : 0.35;
-    rim.intensity = dark ? 1.1 : 0.7;            // brighter edge light separates the dark panels from the dark backdrop
+    hemi.intensity = dark ? 0.12 : 0.2;
+    rim.intensity = dark ? 1.4 : 1.0;            // brighter edge light separates the dark panels from the dark backdrop
     floor.setStrength(dark ? 0.8 : 0.62);
+    bloomScale = dark ? 0.55 : 1; bloom.strength = TIERS[tier].bloom * bloomScale;
   }
 
   // post: ambient occlusion → contact shadows between keys, knobs and panels
   const composer = new EffectComposer(renderer);
   composer.setPixelRatio(DPR);
   const ao = new N8AOPass(scene, camera, window.innerWidth, window.innerHeight);
-  Object.assign(ao.configuration, { aoRadius: 0.45, distanceFalloff: 0.35, intensity: 2.6, color: new THREE.Color(0x0b0a09), gammaCorrection: false, screenSpaceRadius: false, halfRes: true });
+  Object.assign(ao.configuration, { aoRadius: 0.45, distanceFalloff: 0.35, intensity: 3.2, color: new THREE.Color(0x0b0a09), gammaCorrection: false, screenSpaceRadius: false, halfRes: TIERS[tier].aoHalfRes });
   ao.setQualityMode(TIERS[tier].ao ?? 'Performance');
   // N8AO renders the scene itself; when AO is off a plain render pass takes over
   const plain = new RenderPass(scene, camera);
@@ -151,6 +157,11 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
   setAO(!!TIERS[tier].ao);
   composer.addPass(plain);
   composer.addPass(ao);
+  // bloom runs on the linear HDR image, so only real highlights (> ~1) glow
+  const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2), TIERS[tier].bloom, 0.4, 2.2);   // threshold well above lit white plastic
+  bloom.enabled = TIERS[tier].bloom > 0;
+  let bloomScale = 1;                      // glow reads stronger on a dark backdrop
+  composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
   const controls = new OrbitControls(camera, canvas);
@@ -235,6 +246,8 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
     const spec = TIERS[t];
     setAO(!!spec.ao);
     if (spec.ao) ao.setQualityMode(spec.ao);
+    ao.configuration.halfRes = spec.aoHalfRes;
+    bloom.enabled = spec.bloom > 0; bloom.strength = spec.bloom * bloomScale;
     floor.visible = spec.reflection > 0;
     if (sun.shadow.mapSize.x !== spec.shadowMap) {
       sun.shadow.mapSize.set(spec.shadowMap, spec.shadowMap);
