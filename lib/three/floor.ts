@@ -63,12 +63,13 @@ const GlossyFloorShader = {
 };
 
 export function createGlossyFloor(width: number, height: number) {
-  const floor = new Reflector(new THREE.PlaneGeometry(40, 40), {
+  // only as big as the area where the reflection is visible (it fades out ~9 units from the centre)
+  const floor = new Reflector(new THREE.PlaneGeometry(22, 18), {
     shader: GlossyFloorShader,
     textureWidth: width,
     textureHeight: height,
     clipBias: 0.002,
-    multisample: 4,
+    multisample: 0,              // blurred anyway, so MSAA would be wasted
   });
   const mat = floor.material as THREE.ShaderMaterial;
   mat.transparent = true;

@@ -15,6 +15,9 @@ export interface UiState {
   challengeEntry: string | null;
   /** guided tour step, -1 when hidden */
   guide: number;
+  /** rendering quality setting and the tier actually in use */
+  quality: 'auto' | 'high' | 'medium' | 'low';
+  tier: 'high' | 'medium' | 'low';
   /** 0–1 load progress and what is happening, for the preloader */
   progress: number;
   loadStage: string;
@@ -41,6 +44,8 @@ let state: UiState = {
   colorway: 0,
   challengeEntry: null,
   guide: -1,
+  quality: 'auto',
+  tier: 'high',
   progress: 0,
   loadStage: 'loading the instrument',
   theme: 'light',

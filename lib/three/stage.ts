@@ -3,10 +3,12 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { N8AOPass } from 'n8ao';
 import { clamp } from '../audio';
 import type { Theme } from '../theme';
 import { createGlossyFloor } from './floor';
+import { TIERS, pixelRatioFor, type Tier } from './quality';
 
 const VIEW_DIR = new THREE.Vector3(0, Math.cos(0.55), Math.sin(0.55)).normalize();
 const TARGET = new THREE.Vector3(0, 0.4, 0.15);
@@ -39,14 +41,20 @@ function studioEnv(renderer: THREE.WebGLRenderer) {
   return tex;
 }
 
-export function createStage(canvas: HTMLCanvasElement) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  const DPR = Math.min(window.devicePixelRatio, 1.75);
+/** layer 1 = small details (legends, labels, LEDs, screws): drawn on screen but skipped by reflection + shadow passes */
+export const DETAIL_LAYER = 1;
+
+export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: TIERS[initialTier].antialias, powerPreference: 'high-performance' });
+  let tier = initialTier;
+  let DPR = pixelRatioFor(TIERS[tier]);
   renderer.setPixelRatio(DPR);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.92;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;          // the light never moves: re-render shadows only when parts move
+  renderer.shadowMap.needsUpdate = true;
   RectAreaLightUniformsLib.init();
 
   const scene = new THREE.Scene();
@@ -67,6 +75,7 @@ export function createStage(canvas: HTMLCanvasElement) {
   scene.environment = envTex;
 
   const camera = new THREE.PerspectiveCamera(17, 1, 0.1, 300);
+  camera.layers.enable(DETAIL_LAYER);
 
   // key light (casts the shadows), an area softbox for glints, cool rim
   const hemi = new THREE.HemisphereLight(0xfffaf2, 0x8f8d88, 0.35);
@@ -74,7 +83,7 @@ export function createStage(canvas: HTMLCanvasElement) {
   const sun = new THREE.DirectionalLight(0xfff6ea, 2.2);
   sun.position.set(-2.5, 14, 5);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(TIERS[tier].shadowMap, TIERS[tier].shadowMap);
   Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 4, far: 30 });
   sun.shadow.radius = 5; sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02;
   scene.add(sun);
@@ -84,21 +93,30 @@ export function createStage(canvas: HTMLCanvasElement) {
   const SOFTBOX_HOME = softbox.position.clone();
   const pointer = new THREE.Vector2(), pointerSmooth = new THREE.Vector2();
   const setPointer = (nx: number, ny: number) => pointer.set(nx, ny);
+  /** returns true while the light is still gliding (i.e. a redraw is needed) */
   const stepLights = () => {
+    if (pointerSmooth.distanceToSquared(pointer) < 1e-6) return false;
     pointerSmooth.lerp(pointer, 0.06);
     softbox.position.set(SOFTBOX_HOME.x + pointerSmooth.x * 3.2, SOFTBOX_HOME.y, SOFTBOX_HOME.z - pointerSmooth.y * 2.4);
     softbox.lookAt(0, 0, 0);
+    return true;
   };
   const rim = new THREE.DirectionalLight(0xe9eef7, 0.7); rim.position.set(7, 4, -7); scene.add(rim);
 
-  // glossy tabletop reflection (half resolution: it is blurred anyway)
-  const floor = createGlossyFloor(Math.round(window.innerWidth * DPR * 0.5), Math.round(window.innerHeight * DPR * 0.5));
+  // glossy tabletop reflection (low resolution: it is blurred anyway)
+  const reflSize = () => {
+    const f = Math.max(TIERS[tier].reflection, 0.1);
+    return [Math.round(window.innerWidth * DPR * f), Math.round(window.innerHeight * DPR * f)] as const;
+  };
+  const floor = createGlossyFloor(...reflSize());
+  floor.visible = TIERS[tier].reflection > 0;
   scene.add(floor);
 
   // ground: shadow catcher + soft contact shadow
   const contactMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.5, depthWrite: false });
   const groundMat = new THREE.ShadowMaterial({ opacity: 0.22 });
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), groundMat);
+  // just big enough for the device's shadow — a huge plane would shade millions of empty pixels
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(18, 14), groundMat);
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
   {
     const c = document.createElement('canvas'); c.width = 512; c.height = 360;
@@ -111,6 +129,7 @@ export function createStage(canvas: HTMLCanvasElement) {
 
   /** light: bright studio sweep · dark: device lit on a near-black table, stronger reflection */
   function setTheme(t: Theme) {
+    invalidate(); moveShadows();
     scene.background = BACKDROP[t];
     const dark = t === 'dark';
     groundMat.opacity = dark ? 0.55 : 0.22;
@@ -124,8 +143,13 @@ export function createStage(canvas: HTMLCanvasElement) {
   const composer = new EffectComposer(renderer);
   composer.setPixelRatio(DPR);
   const ao = new N8AOPass(scene, camera, window.innerWidth, window.innerHeight);
-  Object.assign(ao.configuration, { aoRadius: 0.45, distanceFalloff: 0.35, intensity: 2.6, color: new THREE.Color(0x0b0a09), gammaCorrection: false, screenSpaceRadius: false });
-  ao.setQualityMode('High');
+  Object.assign(ao.configuration, { aoRadius: 0.45, distanceFalloff: 0.35, intensity: 2.6, color: new THREE.Color(0x0b0a09), gammaCorrection: false, screenSpaceRadius: false, halfRes: true });
+  ao.setQualityMode(TIERS[tier].ao ?? 'Performance');
+  // N8AO renders the scene itself; when AO is off a plain render pass takes over
+  const plain = new RenderPass(scene, camera);
+  const setAO = (on: boolean) => { ao.enabled = on; plain.enabled = !on; };
+  setAO(!!TIERS[tier].ao);
+  composer.addPass(plain);
   composer.addPass(ao);
   composer.addPass(new OutputPass());
 
@@ -171,9 +195,12 @@ export function createStage(canvas: HTMLCanvasElement) {
   let viewSet = false;
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
+    DPR = pixelRatioFor(TIERS[tier]);
+    renderer.setPixelRatio(DPR); composer.setPixelRatio(DPR);
     renderer.setSize(w, h, false);
     composer.setSize(w, h);
-    floor.getRenderTarget().setSize(Math.round(w * DPR * 0.5), Math.round(h * DPR * 0.5));
+    floor.getRenderTarget().setSize(...reflSize());
+    invalidate();
     const prev = camera.position.distanceTo(controls.target);
     fitCamera();
     if (!intro && (!viewSet || prev > controls.maxDistance || prev < controls.minDistance)) { resetView(); viewSet = true; }
@@ -194,7 +221,33 @@ export function createStage(canvas: HTMLCanvasElement) {
     });
   }
 
-  return { renderer, scene, camera, controls, composer, resize, resetView, startIntro, cancelIntro, stepIntro, hasIntro: () => !!intro, setPointer, stepLights, setTheme, dispose };
+  /* ---------- render on demand ---------- */
+  let dirtyFrames = 2;
+  /** request redraws (n frames covers post-processing settling) */
+  function invalidate(n = 2) { dirtyFrames = Math.max(dirtyFrames, n); }
+  /** shadows are re-rendered only when something that casts them moves */
+  function moveShadows() { renderer.shadowMap.needsUpdate = true; }
+  function takeDirty() { const d = dirtyFrames > 0; if (d) dirtyFrames--; return d; }
+
+  function setTier(t: Tier) {
+    if (t === tier) return;
+    tier = t;
+    const spec = TIERS[t];
+    setAO(!!spec.ao);
+    if (spec.ao) ao.setQualityMode(spec.ao);
+    floor.visible = spec.reflection > 0;
+    if (sun.shadow.mapSize.x !== spec.shadowMap) {
+      sun.shadow.mapSize.set(spec.shadowMap, spec.shadowMap);
+      sun.shadow.map?.dispose(); (sun.shadow as { map: THREE.WebGLRenderTarget | null }).map = null;
+      moveShadows();
+    }
+    resize();
+  }
+
+  return {
+    renderer, scene, camera, controls, composer, resize, resetView, startIntro, cancelIntro, stepIntro, hasIntro: () => !!intro,
+    setPointer, stepLights, setTheme, dispose, invalidate, takeDirty, moveShadows, setTier, getTier: () => tier,
+  };
 }
 
 export type Stage = ReturnType<typeof createStage>;

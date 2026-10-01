@@ -39,16 +39,16 @@ export function attachInteraction(stage: Stage, dev: Device) {
   const setKnob = (key: KnobKey, v: number) => { S[key] = clamp(v); dev.setKnobVisual(key); paramChanged(key); hud(dev.knobs[key].grp, FMT[key](S[key])); };
   const setVol = (v: number) => {
     v = clamp(v); if (Math.abs(v - 0.8) < 0.025) v = 0.8;          // detent
-    S.vol = v; dev.setFaderVisual(); paramChanged('vol'); hud(dev.faderCap, 'vol ' + Math.round(S.vol * 100) + '%');
+    S.vol = v; dev.setFaderVisual(); stage.invalidate(); stage.moveShadows(); paramChanged('vol'); hud(dev.faderCap, 'vol ' + Math.round(S.vol * 100) + '%');
   };
   const setKit = (k: number) => { S.kit = (k + KITS.length) % KITS.length; paramChanged('kit'); hud(dev.rollerMesh, 'kit ' + KITS[S.kit].name); };
   const turnJog = (deg: number) => {
-    jogRot += deg; dev.jogGrp.rotation.y = (-jogRot * Math.PI) / 180;
+    jogRot += deg; dev.jogGrp.rotation.y = (-jogRot * Math.PI) / 180; stage.invalidate();
     S.bpm = clamp(S.bpm + deg / 4, 60, 200); paramChanged('bpm');
     hud(dev.jogGrp, 'tempo ' + Math.round(S.bpm) + ' bpm', 0.6);
   };
   const roll = (dy: number) => {
-    dev.rollerMesh.rotation.x += dy * 0.012;
+    dev.rollerMesh.rotation.x += dy * 0.012; stage.invalidate();
     rollAcc += dy;
     while (Math.abs(rollAcc) >= 28) { const dir = Math.sign(rollAcc); rollAcc -= dir * 28; setKit(S.kit - dir); }
   };
@@ -80,6 +80,7 @@ export function attachInteraction(stage: Stage, dev: Device) {
 
   /* ---------- pointer ---------- */
   const drags = new Map<number, Drag>();
+  let hoverEvt: PointerEvent | null = null, hoverRaf = 0;
 
   // capture phase: runs before OrbitControls' own listener, so hitting a control never starts an orbit
   const onDown = (e: PointerEvent) => {
@@ -114,9 +115,14 @@ export function attachInteraction(stage: Stage, dev: Device) {
   const onMove = (e: PointerEvent) => {
     const d = drags.get(e.pointerId);
     if (!d) {
-      if (e.buttons) return;
-      const t = pick(e)?.data.type;
-      canvas.style.cursor = !t ? 'default' : t === 'key' || t === 'step' ? 'pointer' : t === 'jog' ? 'grab' : 'ns-resize';
+      if (e.buttons || e.pointerType === 'touch') return;
+      // hover cursor: at most one raycast per frame
+      hoverEvt = e;
+      if (!hoverRaf) hoverRaf = requestAnimationFrame(() => {
+        hoverRaf = 0;
+        const t = hoverEvt && pick(hoverEvt)?.data.type;
+        canvas.style.cursor = !t ? 'default' : t === 'key' || t === 'step' ? 'pointer' : t === 'jog' ? 'grab' : 'ns-resize';
+      });
       return;
     }
     if (d.type === 'knob') setKnob(d.key, d.v0 + (d.y0 - e.clientY) / 180);
@@ -136,7 +142,7 @@ export function attachInteraction(stage: Stage, dev: Device) {
     if (!d) return;
     drags.delete(e.pointerId);
     if (d.type === 'key') release(d.k);
-    if (d.type === 'roller') { if (!d.moved) { dev.rollerMesh.rotation.x -= 0.3; setKit(S.kit + 1); } rollAcc = 0; }
+    if (d.type === 'roller') { if (!d.moved) { dev.rollerMesh.rotation.x -= 0.3; stage.invalidate(); setKit(S.kit + 1); } rollAcc = 0; }
     if (d.type === 'jog') { canvas.style.cursor = 'grab'; jogDown = false; phys.jogVel = Math.abs(d.v) > 1.2 ? d.v : 0; }
   };
   const onWheel = (e: WheelEvent) => {
@@ -174,11 +180,14 @@ export function attachInteraction(stage: Stage, dev: Device) {
 
   return {
     /** jog wheel flywheel, called once per frame */
+    /** returns true while the jog is coasting */
     stepPhysics() {
-      if (!jogDown && Math.abs(phys.jogVel) > 0.15) { turnJog(phys.jogVel); phys.jogVel *= 0.94; }
-      else if (!jogDown) phys.jogVel = 0;
+      if (!jogDown && Math.abs(phys.jogVel) > 0.15) { turnJog(phys.jogVel); phys.jogVel *= 0.94; return true; }
+      if (!jogDown) phys.jogVel = 0;
+      return false;
     },
     dispose() {
+      cancelAnimationFrame(hoverRaf);
       canvas.removeEventListener('pointerdown', onDown, { capture: true });
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);

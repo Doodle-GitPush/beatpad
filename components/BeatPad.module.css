@@ -103,6 +103,13 @@
 }
 .keys dd { margin: 0; color: var(--muted); font-size: 12px; }
 .menuRow { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 2px; border-radius: 9px; border: 1px solid var(--panel-line); margin-bottom: 6px; }
+.segBtn { border: 0; border-radius: 7px; padding: 6px 0; cursor: pointer; background: transparent; color: var(--muted); font: 500 11px var(--font-mono), monospace; }
+.segBtn:hover { color: var(--ink); }
+.segBtn:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
+.segOn { background: var(--ink); color: var(--bg); }
+.segOn:hover { color: var(--bg); }
+.menuNote { margin: 0 0 14px; color: var(--muted); font-size: 12px; }
 .menuBtn {
   border: 1px solid var(--panel-line); border-radius: 8px; padding: 7px 11px; cursor: pointer; background: transparent; color: var(--ink);
   font: 500 12px var(--font-mono), monospace; text-transform: lowercase; text-decoration: none;

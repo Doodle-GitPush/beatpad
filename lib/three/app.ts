@@ -10,8 +10,8 @@ import { drawLegend, setFont } from './geometry';
 import { attachInteraction } from './interaction';
 import { createMaterials } from './materials';
 import { createStage } from './stage';
+import { TIER_ORDER, createGovernor, guessTier, readSetting, saveSetting, type QualitySetting, type Tier } from './quality';
 
-const C_HOT = new THREE.Color('#ff6a2a'), C_WHITE = new THREE.Color('#ffffff');
 
 function legendColor(v: KeyView, t: number) {
   const { key, baseColor } = v;
@@ -34,16 +34,22 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
   setFont(fontFamily);
   progress(0.55, 'setting up the studio'); await nextFrame();
   if (cancelled()) return () => {};
-  const stage = createStage(canvas);
+  // quality: saved choice, or a guess from the device that the governor below can lower
+  let setting: QualitySetting = readSetting();
+  const probe = canvas.getContext('webgl2') || canvas.getContext('webgl');
+  const startTier: Tier = setting === 'auto' ? (probe ? guessTier(probe) : 'medium') : setting;
+  const stage = createStage(canvas, startTier);
+  ui.set({ quality: setting, tier: startTier });
   progress(0.66, 'machining the parts'); await nextFrame();
   const dev = buildDevice(stage.scene, createMaterials());
 
   const syncControls = () => {
     (Object.keys(dev.knobs) as KnobKey[]).forEach((k) => dev.setKnobVisual(k));
     dev.setFaderVisual();
+    stage.invalidate(); stage.moveShadows();
   };
   hooks.syncControls = syncControls;
-  hooks.applyLook = dev.applyLook;
+  hooks.applyLook = () => { dev.applyLook(); stage.invalidate(); };
   load();
   dev.applyLook();
   importFromHash();
@@ -97,8 +103,31 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
   progress(0.94, 'first light');
 
   let raf = 0, pulse = 0;
+  // ?perf exposes counters for profiling (renders, draw calls)
+  const perf = { frames: 0 };
+  if (new URLSearchParams(location.search).has('perf')) {
+    (window as unknown as { __bp: unknown }).__bp = { perf, renderer: stage.renderer, info: stage.renderer.info, controls: stage.controls, stage, setQuality: (q: QualitySetting) => hooks.setQuality(q) };
+    stage.renderer.info.autoReset = false;
+  }
+  const governor = createGovernor(() => {
+    if (setting !== 'auto') return;
+    const i = TIER_ORDER.indexOf(stage.getTier());
+    if (i < TIER_ORDER.length - 1) { stage.setTier(TIER_ORDER[i + 1]); ui.set({ tier: TIER_ORDER[i + 1] }); }
+  });
+  hooks.setQuality = (q: QualitySetting) => {
+    setting = q; saveSetting(q); governor.reset();
+    const t = q === 'auto' ? (probe ? guessTier(probe) : 'medium') : q;
+    stage.setTier(t); ui.set({ quality: q, tier: t });
+  };
+  hooks.invalidate = () => stage.invalidate();
+
+  const settle = (a: number, b: number) => Math.abs(a - b) > 1e-4;   // still moving?
+  let shadowTick = 0, wasMoving = false;
+
   const frame = () => {
     const t = performance.now();
+    let moving = false;      // parts that cast shadows moved
+    let changed = false;     // anything visible changed
 
     // events queued by the audio scheduler, released when their moment arrives
     if (hasAudio()) {
@@ -117,36 +146,63 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
     dev.keys.forEach((v) => {
       const k = v.key;
       const target = k.held || t < k.flashUntil ? -0.085 : 0;
-      v.off += (target - v.off) * (target < v.off ? 0.6 : 0.3);
-      v.rx += (k.tx - v.rx) * 0.4; v.rz += (k.tz - v.rz) * 0.4;
-      v.grp.position.y = v.y0 + v.off; v.grp.rotation.set(v.rx, 0, v.rz);
+      if (settle(v.off, target) || settle(v.rx, k.tx) || settle(v.rz, k.tz)) {
+        v.off += (target - v.off) * (target < v.off ? 0.6 : 0.3);
+        v.rx += (k.tx - v.rx) * 0.4; v.rz += (k.tz - v.rz) * 0.4;
+        v.grp.position.y = v.y0 + v.off; v.grp.rotation.set(v.rx, 0, v.rz);
+        moving = true;
+      }
       const col = legendColor(v, t);
-      if (col !== v.curColor) { v.curColor = col; drawLegend(v.canvas, k.L, col); v.tex.needsUpdate = true; }
+      if (col !== v.curColor) { v.curColor = col; drawLegend(v.canvas, k.L, col); v.tex.needsUpdate = true; changed = true; }
     });
 
-    for (const key in dev.knobs) { const kn = dev.knobs[key as KnobKey]; kn.cur += (kn.target - kn.cur) * 0.35; kn.spin.rotation.y = kn.cur; }
+    for (const key in dev.knobs) {
+      const kn = dev.knobs[key as KnobKey];
+      if (settle(kn.cur, kn.target)) { kn.cur += (kn.target - kn.cur) * 0.35; kn.spin.rotation.y = kn.cur; moving = true; }
+    }
 
-    inter.stepPhysics();
-    pulse = Math.max(pulse * 0.86, q.pulse); q.pulse = 0;                   // kick pulse (sequencer sets it, we decay it)
-    dev.jogGrp.position.y = dev.JOG.y - 0.014 * pulse;
+    if (inter.stepPhysics()) moving = true;
+    if (pulse > 1e-3 || q.pulse) {
+      pulse = Math.max(pulse * 0.86, q.pulse); q.pulse = 0;                 // kick pulse (sequencer sets it, we decay it)
+      dev.jogGrp.position.y = dev.JOG.y - 0.014 * pulse;
+      if (pulse <= 1e-3) { pulse = 0; dev.jogGrp.position.y = dev.JOG.y; }
+      moving = true;
+    }
 
     // step lights
     const set = pat();
+    let ledsChanged = false;
     dev.leds.forEach((L, i) => {
       const isCur = i === q.cur, isSel = i === q.selStep;
       let ei = 0, gi = 0;
       if (isCur) { ei = 3.2; gi = 0.9; }
       else if (isSel) { const b = 0.5 + 0.5 * Math.sin(t / 140); ei = 1.2 + 1.6 * b; gi = 0.35 + 0.4 * b; }
       else if (set[i].size) { ei = 0.55; gi = 0.12; }
-      L.m.emissiveIntensity += (ei - L.m.emissiveIntensity) * 0.5;
-      L.gm.opacity += (gi - L.gm.opacity) * 0.5;
-      L.m.emissive.copy(isSel && !isCur ? C_WHITE : C_HOT);
+      const white = isSel && !isCur;
+      if (Math.abs(L.ei - ei) > 0.003 || Math.abs(L.gi - gi) > 0.002 || L.white !== white) {
+        L.ei += (ei - L.ei) * 0.5; L.gi += (gi - L.gi) * 0.5; L.white = white;
+        if (Math.abs(L.ei - ei) < 0.003) L.ei = ei;
+        if (Math.abs(L.gi - gi) < 0.002) L.gi = gi;
+        ledsChanged = true;
+      }
     });
+    if (ledsChanged) { dev.commitLeds(); changed = true; }
 
-    stage.stepLights();
-    stage.stepIntro(t);
-    stage.controls.update();
-    stage.composer.render();
+    if (stage.stepLights()) changed = true;
+    if (stage.hasIntro()) { stage.stepIntro(t); changed = true; }
+    if (stage.controls.update()) changed = true;
+
+    // shadows: refresh every 3rd frame while parts move, and once more when they stop
+    if (moving) { if (shadowTick++ % 3 === 0) stage.moveShadows(); }
+    else if (wasMoving) { stage.moveShadows(); shadowTick = 0; }
+    wasMoving = moving;
+
+    // render only when something changed — an idle device costs (almost) nothing
+    if (moving || changed || stage.takeDirty()) {
+      stage.composer.render();
+      perf.frames++;
+      governor.sample(t);
+    }
     raf = requestAnimationFrame(frame);
   };
   stage.composer.render();                 // first frame (also compiles the post-processing passes)

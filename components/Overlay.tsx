@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { exportWav, selectStep, shareBeat } from '@/lib/sequencer';
+import { exportWav, hooks, selectStep, shareBeat } from '@/lib/sequencer';
 import { applyTheme } from '@/lib/theme';
 import { ui, useUi } from '@/lib/store';
 import Guide from './Guide';
@@ -144,6 +144,7 @@ function HelpMenu({ close }: { close: () => void }) {
         <FragmentRow k="steps" d="click a step, then press keys to edit it" />
         <FragmentRow k="orbit" d="drag empty space · double-click to reset" />
       </dl>
+      <QualityPicker />
       <div className={s.menuRow}>
         <button type="button" className={s.menuBtn} onClick={() => { close(); ui.set({ guide: 0, panel: 'none' }); }}>replay the guide</button>
         <a className={s.menuBtn} href="/2d.html">2d version</a>
@@ -151,6 +152,23 @@ function HelpMenu({ close }: { close: () => void }) {
     </div>
   );
 }
+function QualityPicker() {
+  const u = useUi();
+  const opts = ['auto', 'high', 'medium', 'low'] as const;
+  return (
+    <>
+      <div className={s.menuTitle}>graphics quality{u.quality === 'auto' && <> · using {u.tier}</>}</div>
+      <div className={s.seg} role="radiogroup" aria-label="Graphics quality">
+        {opts.map((o) => (
+          <button key={o} type="button" role="radio" aria-checked={u.quality === o}
+            className={`${s.segBtn} ${u.quality === o ? s.segOn : ''}`} onClick={() => hooks.setQuality(o)}>{o}</button>
+        ))}
+      </div>
+      <p className={s.menuNote}>Auto picks for your device and steps down if things get choppy. Low turns off reflections and soft shadows.</p>
+    </>
+  );
+}
+
 function FragmentRow({ k, d }: { k: React.ReactNode; d: string }) {
   return <div className={s.kv}><dt>{k}</dt><dd>{d}</dd></div>;
 }

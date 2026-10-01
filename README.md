@@ -63,6 +63,19 @@ public/2d.html          the earlier flat 2D prototype
 types/n8ao.d.ts         typings for the n8ao ambient-occlusion package
 ```
 
+## Performance
+
+- The scene renders **on demand**: nothing is drawn while the device is idle; frames are drawn only while the
+  camera, a key, knob, jog, LED or light is actually changing.
+- The shadow map is re-rendered only while parts that cast shadows move.
+- Quality tiers (`lib/three/quality.ts`): **auto** guesses from the device (GPU, cores, memory, touch) and a
+  governor steps down a tier if active frames average under ~38 fps. High = AO + reflection + 2K shadows at
+  ≤1.25× pixel ratio; medium = cheaper AO/reflection at 1×; low = no AO or reflection. Users can override in
+  the **?** menu.
+- Small static parts are merged into one draw call per material, the 16 LEDs are two instanced draws, and
+  decorative details live on a layer the reflection and shadow passes skip.
+- Add `?perf` to the URL to expose render counters on `window.__bp` for profiling.
+
 The engine (audio, sequencer, three.js scene) is plain TypeScript with no React inside it; React only renders
 the overlay and owns mount/unmount. `three`, `postprocessing` and `n8ao` are pinned to versions known to work
 together.

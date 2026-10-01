@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { DETAIL_LAYER } from './stage';
 import { S } from '../audio';
 import { KEYS, type Key } from '../keys';
 import { capFor } from '../keyconfig';
@@ -14,7 +16,8 @@ export interface KeyView {
   y0: number; off: number; rx: number; rz: number; w: number; d: number; baseColor: string; curColor: string;
 }
 export interface KnobView { grp: THREE.Group; spin: THREE.Group; target: number; cur: number }
-export interface Led { m: THREE.MeshStandardMaterial; gm: THREE.MeshBasicMaterial; pos: THREE.Vector3 }
+/** one step light: current lens glow (ei), halo (gi) and whether it shows the white 'selected' colour */
+export interface Led { ei: number; gi: number; white: boolean; pos: THREE.Vector3 }
 
 export type Pickable =
   | { type: 'key'; k: Key }
@@ -33,6 +36,16 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
     return mesh;
   };
   const pickable = (o: THREE.Object3D, data: Pickable) => { o.userData = data; interactive.push(o); };
+  /** small decorative parts: visible on screen, skipped by the reflection and shadow passes */
+  const detail = <T extends THREE.Object3D>(o: T) => { o.traverse((c) => c.layers.set(DETAIL_LAYER)); return o; };
+  // static parts that share a material are merged into one draw call at the end
+  const statics = new Map<THREE.Material, THREE.BufferGeometry[]>();
+  const addStatic = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => {
+    // mergeGeometries needs every part in the same layout, so drop indices (mixing kinds fails silently)
+    const g = geo.index ? geo.toNonIndexed() : geo.clone(); g.translate(x, y, z);
+    if (!statics.has(mat)) statics.set(mat, []);
+    statics.get(mat)!.push(g);
+  };
 
   /* ---------- numpad frame ---------- */
   {
@@ -72,7 +85,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
       new THREE.MeshPhysicalMaterial({ map: tex, transparent: true, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.06, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }),
     );
     decal.rotation.x = -Math.PI / 2; decal.position.set(0, KEY_H / 2 + 0.003, -0.035);
-    grp.add(decal);
+    grp.add(detail(decal));
 
     scene.add(grp);
     pickable(grp, { type: 'key', k: key });
@@ -81,11 +94,11 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
 
   /* ---------- panels ---------- */
   const screws = (cx: number, cz: number, w: number, d: number) => {
-    const g1 = new THREE.CylinderGeometry(0.065, 0.065, 0.012, 28), g2 = new THREE.CylinderGeometry(0.03, 0.03, 0.014, 20);
+    const g1 = new THREE.CylinderGeometry(0.065, 0.065, 0.012, 20), g2 = new THREE.CylinderGeometry(0.03, 0.03, 0.014, 12);
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
       const x = cx + sx * (w / 2 - 0.19), z = cz + sz * (d / 2 - 0.19);
-      add(new THREE.Mesh(g1, MAT.screw)).position.set(x, PANEL_TOP, z);
-      add(new THREE.Mesh(g2, MAT.slot)).position.set(x, PANEL_TOP + 0.001, z);
+      addStatic(g1, MAT.screw, x, PANEL_TOP, z);
+      addStatic(g2, MAT.slot, x, PANEL_TOP + 0.001, z);
     });
   };
   const label = (text: string, x: number, z: number, lift = 0.004, size = 0.1) => {
@@ -97,7 +110,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
     g.fillText(text.toUpperCase(), 128, 26);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     const m = new THREE.Mesh(new THREE.PlaneGeometry((size * 256) / 48, size), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
-    m.rotation.x = -Math.PI / 2; m.position.set(x, PANEL_TOP + lift, z); scene.add(m);
+    m.rotation.x = -Math.PI / 2; m.position.set(x, PANEL_TOP + lift, z); scene.add(detail(m));
   };
   const panel = (x0: number, w: number) => {
     const cx = W(x0 + w / 2), cz = Dz(297.5);
@@ -117,7 +130,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
     const grp = new THREE.Group(); grp.position.set(x, PANEL_TOP, z);
     const spin = new THREE.Group(); grp.add(spin);
     add(new THREE.Mesh(gearGeo(R, 0.3), MAT.knurl), spin);
-    add(new THREE.Mesh(new THREE.CylinderGeometry(R * 0.8, R * 0.82, 0.04, 64), MAT.kcap), spin).position.y = 0.334;
+    add(new THREE.Mesh(new THREE.CylinderGeometry(R * 0.8, R * 0.82, 0.04, 40), MAT.kcap), spin).position.y = 0.334;
     add(new THREE.Mesh(new RoundedBoxGeometry(0.028, 0.012, R * 0.42, 2, 0.005), MAT.mark), spin).position.set(0, 0.356, -R * 0.5);
     scene.add(grp); pickable(grp, { type: 'knob', key });
     knobs[key] = { grp, spin, target: 0, cur: 0 };
@@ -158,7 +171,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
   {
     add(new THREE.Mesh(new RoundedBoxGeometry(0.085, 0.03, 2.52, 2, 0.012), MAT.slot), scene, false, true)
       .position.set(FADER.x, FADER.y + 0.002, (FADER.z0 + FADER.z1) / 2);
-    add(new THREE.Mesh(new RoundedBoxGeometry(0.64, 0.3, 0.46, 5, 0.11), MAT.black), faderCap).position.y = 0.22;
+    add(new THREE.Mesh(new RoundedBoxGeometry(0.64, 0.3, 0.46, 3, 0.11), MAT.black), faderCap).position.y = 0.22;
     add(new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.006, 0.016), MAT.mark), faderCap).position.y = 0.373;
     faderCap.position.set(FADER.x, FADER.y, 0);
     scene.add(faderCap); pickable(faderCap, { type: 'fader' });
@@ -170,8 +183,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
     for (let i = 0; i <= 10; i++) {
       const z = FADER.z0 + (i / 10) * (FADER.z1 - FADER.z0), len = i % 5 === 0 ? 0.16 : 0.09;
       [-1, 1].forEach((sx) => {
-        add(new THREE.Mesh(new THREE.BoxGeometry(len, 0.006, 0.012), i === 2 ? MAT.tabO : MAT.tick), scene, false, false)
-          .position.set(FADER.x + sx * (0.42 + len / 2), PANEL_TOP + 0.004, z);
+        addStatic(new THREE.BoxGeometry(len, 0.006, 0.012), i === 2 ? MAT.tabO : MAT.tick, FADER.x + sx * (0.42 + len / 2), PANEL_TOP + 0.004, z);
       });
     }
   }
@@ -182,7 +194,7 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
   const rollerX = right.px(305), rollerZ = Dz(112);
   add(new THREE.Mesh(slab(0.9, 0.78, 0.05, 0.1, 0.03, 0.76, 0.64, 0.06), MAT.black)).position.set(rollerX, PANEL_TOP + 0.02, rollerZ);
   add(new THREE.Mesh(new RoundedBoxGeometry(0.78, 0.2, 0.66, 3, 0.05), MAT.slot), scene, false, true).position.set(rollerX, PANEL_TOP - 0.05, rollerZ);
-  const rollerGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.72, 96, 1); rollerGeo.rotateZ(Math.PI / 2);
+  const rollerGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.72, 48, 1); rollerGeo.rotateZ(Math.PI / 2);
   const rollerMesh = add(new THREE.Mesh(rollerGeo, MAT.roller));
   rollerMesh.position.set(rollerX, PANEL_TOP - 0.12, rollerZ);
   pickable(rollerMesh, { type: 'roller' });
@@ -192,39 +204,65 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
   const jogPts = [[0.0001, 0], [1.37, 0], [1.395, 0.02], [1.395, 0.3], [1.39, 0.35], [1.36, 0.37], [1.3, 0.375], [1.2, 0.36], [1.17, 0.33], [1.14, 0.318], [1.0, 0.31], [0.5, 0.302], [0.0001, 0.3]]
     .map(([r, y]) => new THREE.Vector2(r, y));
   const jogGrp = new THREE.Group(); jogGrp.position.set(JOG.x, JOG.y, JOG.z);
-  add(new THREE.Mesh(new THREE.LatheGeometry(jogPts, 128), MAT.jog), jogGrp);
+  add(new THREE.Mesh(new THREE.LatheGeometry(jogPts, 128), MAT.jog), jogGrp);   // keep: fewer segments show as steps in the spun highlight
   const dimple = add(new THREE.Mesh(new THREE.CircleGeometry(0.08, 32), MAT.dimple), jogGrp, false, true);
-  dimple.rotation.x = -Math.PI / 2; dimple.position.set(0, 0.316, -0.98);
+  dimple.rotation.x = -Math.PI / 2; dimple.position.set(0, 0.316, -0.98); detail(dimple);
   scene.add(jogGrp); pickable(jogGrp, { type: 'jog' });
 
   /* ---------- small parts ---------- */
   ([[W(61), 0.18, MAT.tabW], [W(332), 0.12, MAT.tabO], [W(918), 0.12, MAT.tabO]] as const).forEach(([x, w, m]) => {
-    add(new THREE.Mesh(new RoundedBoxGeometry(w, 0.1, 0.06, 2, 0.02), m)).position.set(x, 0.42, Dz(0) - 0.02);
+    addStatic(new RoundedBoxGeometry(w, 0.1, 0.06, 2, 0.02), m, x, 0.42, Dz(0) - 0.02);
   });
 
   /* ---------- 16 step lights ---------- */
   const leds: Led[] = [];
+  let ledMeshes: { lenses: THREE.InstancedMesh; halos: THREE.InstancedMesh } | null = null;
   {
     const c = document.createElement('canvas'); c.width = c.height = 64;
     const g = c.getContext('2d')!, gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
     gr.addColorStop(0, 'rgba(255,200,150,1)'); gr.addColorStop(0.35, 'rgba(255,120,60,.45)'); gr.addColorStop(1, 'rgba(255,90,30,0)');
     g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
     const glowTex = new THREE.CanvasTexture(c); glowTex.colorSpace = THREE.SRGBColorSpace;
-    const bez = new RoundedBoxGeometry(0.1, 0.03, 0.06, 2, 0.012), lens = new RoundedBoxGeometry(0.075, 0.03, 0.038, 2, 0.01), hitG = new THREE.BoxGeometry(0.13, 0.2, 0.12);
+    // all 16 lenses are one instanced draw, all 16 halos another; colours carry the brightness
+    const bez = new RoundedBoxGeometry(0.1, 0.03, 0.06, 2, 0.012), hitG = new THREE.BoxGeometry(0.13, 0.2, 0.12);
+    const lenses = new THREE.InstancedMesh(new RoundedBoxGeometry(0.075, 0.03, 0.038, 2, 0.01), new THREE.MeshBasicMaterial(), 16);
+    const glowGeo = new THREE.PlaneGeometry(0.42, 0.42); glowGeo.rotateX(-Math.PI / 2);
+    const halos = new THREE.InstancedMesh(glowGeo, new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }), 16);
+    const m4 = new THREE.Matrix4();
     for (let i = 0; i < 16; i++) {
       const x = right.px(122 + i * 13 + Math.floor(i / 4) * 8), z = Dz(548);
-      add(new THREE.Mesh(bez, MAT.slot), scene, false, true).position.set(x, PANEL_TOP + 0.006, z);
-      const m = new THREE.MeshStandardMaterial({ color: '#3a2a24', roughness: 0.35, emissive: new THREE.Color('#ff6a2a'), emissiveIntensity: 0 });
-      add(new THREE.Mesh(lens, m), scene, false, false).position.set(x, PANEL_TOP + 0.012, z);
-      const gm = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
-      const gl = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.42), gm);
-      gl.rotation.x = -Math.PI / 2; gl.position.set(x, PANEL_TOP + 0.03, z); scene.add(gl);
+      addStatic(bez, MAT.slot, x, PANEL_TOP + 0.006, z);
+      lenses.setMatrixAt(i, m4.makeTranslation(x, PANEL_TOP + 0.012, z));
+      halos.setMatrixAt(i, m4.makeTranslation(x, PANEL_TOP + 0.03, z));
       const hit = new THREE.Mesh(hitG, new THREE.MeshBasicMaterial());
       hit.position.set(x, PANEL_TOP + 0.05, z); hit.updateMatrixWorld(true);
       pickable(hit, { type: 'step', i });
-      leds.push({ m, gm, pos: new THREE.Vector3(x, PANEL_TOP, z) });
+      leds.push({ ei: -1, gi: -1, white: false, pos: new THREE.Vector3(x, PANEL_TOP, z) });
     }
+    scene.add(detail(lenses), detail(halos));
+    ledMeshes = { lenses, halos };
   }
+
+  const OFF = new THREE.Color('#2a1d18'), HOT = new THREE.Color('#ff6a2a'), WHITE = new THREE.Color('#ffffff'), tmpC = new THREE.Color();
+  /** push LED brightness into the instance colours (call after changing leds[i].ei / gi / white) */
+  const commitLeds = () => {
+    if (!ledMeshes) return;
+    leds.forEach((L, i) => {
+      tmpC.copy(OFF).lerp(L.white ? WHITE : HOT, Math.min(1, L.ei / 1.6)).multiplyScalar(1 + Math.max(0, L.ei - 1.6) * 0.35);
+      ledMeshes!.lenses.setColorAt(i, tmpC);
+      ledMeshes!.halos.setColorAt(i, tmpC.setScalar(L.gi));
+    });
+    ledMeshes.lenses.instanceColor!.needsUpdate = true;
+    ledMeshes.halos.instanceColor!.needsUpdate = true;
+  };
+
+  // merge the static parts collected above: one mesh per material, flagged as detail
+  statics.forEach((geos, mat) => {
+    const merged = mergeGeometries(geos, false);
+    geos.forEach((g) => g.dispose());
+    if (!merged) throw new Error('could not merge static parts');
+    scene.add(detail(new THREE.Mesh(merged, mat)));
+  });
 
   /** recolour every cap for the current colourway */
   const applyLook = () => {
@@ -238,7 +276,8 @@ export function buildDevice(scene: THREE.Scene, MAT: Materials) {
   };
   applyLook();
 
-  return { interactive, keys, knobs, setKnobVisual, FADER, faderCap, setFaderVisual, rollerMesh, JOG, jogGrp, leds, applyLook };
+  leds.forEach((L) => { L.ei = 0; L.gi = 0; }); commitLeds();
+  return { interactive, keys, knobs, setKnobVisual, FADER, faderCap, setFaderVisual, rollerMesh, JOG, jogGrp, leds, commitLeds, applyLook };
 }
 
 export type Device = ReturnType<typeof buildDevice>;

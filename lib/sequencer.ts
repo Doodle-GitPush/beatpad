@@ -9,7 +9,10 @@ import { challengeFor, markDone, todaysChallenge, checkChallenge, type Challenge
 import { STARTERS, starterPattern } from './starters';
 
 /** the 3D view registers these so changes made from panels show up on the device */
-export const hooks = { syncControls: () => {}, applyLook: () => {} };
+export const hooks = {
+  syncControls: () => {}, applyLook: () => {}, invalidate: () => {},
+  setQuality: (q: 'auto' | 'high' | 'medium' | 'low') => { void q; },
+};
 
 const STORE = 'beatpad.v2';
 const newPat = () => Array.from({ length: 16 }, () => new Set<string>());
