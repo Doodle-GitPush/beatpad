@@ -1,10 +1,16 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import { THEME_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
 const sans = Geist({ variable: '--font-sans', subsets: ['latin'] });
 const mono = Geist_Mono({ variable: '--font-mono', subsets: ['latin'] });
+// Wanted Sans (OFL, see public/fonts/WANTED-SANS-LICENSE.txt) — the Latin subset only, for the create menu
+const wanted = localFont({
+  src: './fonts/WantedSansVariable-latin.woff2', variable: '--font-wanted', weight: '400 1000', display: 'swap',
+  fallback: ['Helvetica Neue', 'Arial', 'sans-serif'],
+});
 
 export const metadata: Metadata = {
   title: 'Beat Pad 3D',
@@ -25,7 +31,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" data-theme="light" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang="en" data-theme="light" className={`${sans.variable} ${mono.variable} ${wanted.variable}`} suppressHydrationWarning>
       <head>
         {/* sets data-theme before first paint so there is no light/dark flash */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

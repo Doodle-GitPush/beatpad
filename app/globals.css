@@ -346,8 +346,8 @@ html, body {
      --board      the ground a floating surface sits on → the
                   frosted --panel-bg every other overlay uses
      --pane-edge  that surface's hairline → --panel-line
-     --font-ui    the chrome's type → Geist Mono, like every
-                  other control in the top bar
+     --font-ui    the menu's type → Wanted Sans, self-hosted
+                  from app/fonts (Latin subset)
      --ink-rgb    no equivalent: --ink as three bare numbers,
                   per theme, for the rgba() the rows build
      --fill-*     Bencho's optional fill layer; Beat Pad has
@@ -356,13 +356,11 @@ html, body {
 .bp-create {
   --board: var(--panel-bg);
   --pane-edge: var(--panel-line);
-  --font-ui: var(--font-mono), ui-monospace, monospace;
+  --font-ui: var(--font-wanted), 'Helvetica Neue', Arial, sans-serif;
   --ink-rgb: 59, 59, 57;           /* #3b3b39 */
   --fill-slab: var(--board);
   --fill-on: var(--ink);
   --fill-on-rgb: var(--ink-rgb);
-  letter-spacing: 0.04em;
-  text-transform: lowercase;
 }
 [data-theme='dark'] .bp-create { --ink-rgb: 236, 235, 231; }   /* #ecebe7 */
 

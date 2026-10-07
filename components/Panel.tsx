@@ -26,13 +26,13 @@ export function Tools() {
   const c = todaysChallenge();
   const doneToday = isDone(c.date);
   const items: CreateItem[] = [
-    { id: 'challenge', icon: Trophy, label: <>daily challenge #{c.no}{!doneToday && <i className="bp-dot" aria-label="not done yet" />}</> },
-    { id: 'starters', icon: Disc3, label: 'starter beats' },
-    { id: 'keys', icon: Keyboard, label: 'customise keys' },
+    { id: 'challenge', icon: Trophy, label: <>Daily challenge #{c.no}{!doneToday && <i className="bp-dot" aria-label="not done yet" />}</> },
+    { id: 'starters', icon: Disc3, label: 'Starter beats' },
+    { id: 'keys', icon: Keyboard, label: 'Customise keys' },
   ];
   return (
     <div className={s.tools} id="bp-tools">
-      <CreateMenu className="bp-create" anchor="bottom" label="create" panelW={256} items={items}
+      <CreateMenu className="bp-create" anchor="bottom" label="Create" panelW={256} items={items}
         onSelect={(id) => { if (isTab(id)) open(id); }} />
     </div>
   );
