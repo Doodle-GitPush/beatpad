@@ -23,6 +23,7 @@
   font: 500 13px var(--font-mono), monospace; letter-spacing: 0.06em; color: var(--ink); text-transform: lowercase;
 }
 .logo { width: 20px; height: 20px; align-self: center; flex: none; }
+.brand b { font-weight: 500; text-transform: none; }
 .brand span { color: var(--muted); font-weight: 400; }
 
 .actions { display: flex; align-items: center; gap: 6px; pointer-events: auto; }

@@ -50,7 +50,7 @@ export default function Overlay() {
     <>
       <header className={s.topbar}>
         <div className={s.left}>
-          <div className={s.brand}><Logo className={s.logo} stroke={36} />beat pad<span>3d drum instrument</span></div>
+          <div className={s.brand}><Logo className={s.logo} stroke={36} /><b>Beat Pad</b><span>3d drum instrument</span></div>
         </div>
         <div className={s.actions}>
           <a className={`${s.iconBtn} ${s.glass} ${s.textBtn}`} href="/2d.html" aria-label="Switch to the 2D version" title="Switch to the 2D version">2D</a>

@@ -119,8 +119,8 @@ type Props = {
   corner?: number;
   panelW?: number;
   className?: string;
-  /** 'left' grows the panel to the right of the pill, still centred vertically, instead of out from its centre */
-  anchor?: 'center' | 'left';
+  /** 'bottom' grows the panel straight up from the pill, still centred side to side, instead of out from its centre */
+  anchor?: 'center' | 'bottom';
 };
 
 export function CreateMenu({
@@ -261,7 +261,7 @@ export function CreateMenu({
       className={`crt-stage${className ? ` ${className}` : ''}`}
       data-open={open || undefined}
       data-sink={sink || undefined}
-      data-anchor={anchor === 'left' ? anchor : undefined}
+      data-anchor={anchor === 'bottom' ? anchor : undefined}
       data-stroke="on"
       ref={panel}
       style={{

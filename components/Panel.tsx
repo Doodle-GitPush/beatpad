@@ -32,7 +32,7 @@ export function Tools() {
   ];
   return (
     <div className={s.tools} id="bp-tools">
-      <CreateMenu className="bp-create" anchor="left" label="create" panelW={256} items={items}
+      <CreateMenu className="bp-create" anchor="bottom" label="create" panelW={256} items={items}
         onSelect={(id) => { if (isTab(id)) open(id); }} />
     </div>
   );

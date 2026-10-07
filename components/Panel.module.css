@@ -1,16 +1,17 @@
-/* the create menu: on the left edge, vertically centred. Centred by
-   top/bottom 0 and auto margins, like the menu itself — no transform */
+/* the create menu: centred at the foot of the page, just above
+   the status bar (46px tall at 18px up). Centred by auto margins
+   and fit-content, like the menu itself — no transform */
 .tools {
-  position: fixed; left: 20px; top: 0; bottom: 0; z-index: 7;
-  height: 38px; margin: auto 0; display: flex; pointer-events: none;
+  position: fixed; left: 0; right: 0; bottom: 74px; z-index: 7;
+  width: fit-content; height: 38px; margin: 0 auto;
+  display: flex; pointer-events: none;
 }
 .btn:focus-visible, .ghost:focus-visible, .swatch:focus-visible, .close:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 .panel {
-  /* beside the create menu, centred on the same line */
-  position: fixed; top: 0; bottom: 0; left: 152px; z-index: 6; width: 330px;
-  height: fit-content; margin: auto 0;
-  max-height: calc(100vh - 150px); overflow: auto; overscroll-behavior: contain;
+  /* centred above the create menu it came from */
+  position: fixed; bottom: 122px; left: 0; right: 0; margin: 0 auto; z-index: 6; width: 330px;
+  max-height: calc(100vh - 200px); overflow: auto; overscroll-behavior: contain;
   background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px;
   backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
   box-shadow: var(--panel-shadow); color: var(--ink);
@@ -81,7 +82,7 @@
 .empty { color: var(--muted); padding: 8px 0 4px; }
 
 @media (max-width: 700px) {
-  /* a phone has the instrument across the middle, so the menu waits above the status bar */
-  .tools { top: auto; bottom: 150px; left: 12px; }
-  .panel { top: auto; bottom: 198px; left: 10px; right: 10px; width: auto; max-height: 52vh; }
+  /* a phone's status bar spans the width, so the menu waits just above it */
+  .tools { bottom: 90px; }
+  .panel { bottom: 138px; left: 10px; right: 10px; margin: 0; width: auto; max-height: 52vh; }
 }

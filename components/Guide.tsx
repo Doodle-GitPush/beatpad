@@ -56,7 +56,7 @@ export default function Guide() {
       let p: { x: number; y: number } | null;
       if (a === 'tools') {
         const r = document.getElementById('bp-tools')?.getBoundingClientRect();
-        p = r ? { x: r.left + 24, y: r.bottom } : null;
+        p = r ? { x: r.left + r.width / 2, y: r.top } : null;   // the create menu sits at the bottom: point from above
       } else p = anchors[a]?.() ?? null;
       // only re-render when the target moved by a whole pixel
       const key = p ? `${Math.round(p.x)},${Math.round(p.y)}` : '';
@@ -70,7 +70,7 @@ export default function Guide() {
   if (step < 0 || step >= STEPS.length || !pos) return null;
   const st = STEPS[step];
   const W = Math.min(300, window.innerWidth - 32), H = 150;
-  const below = st.anchor === 'tools' || pos.y < H + 40;
+  const below = st.anchor !== 'tools' && pos.y < H + 40;
   const left = Math.max(16, Math.min(window.innerWidth - W - 16, pos.x - W / 2));
   const top = below ? pos.y + 22 : pos.y - H - 22;
 
