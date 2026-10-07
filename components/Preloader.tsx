@@ -42,7 +42,7 @@ export default function Preloader() {
     <div className={`${s.wrap} ${phase === 'fade' ? s.fade : ''}`} role="status" aria-live="polite" aria-label={`Loading, ${Math.round(p * 100)} percent`}>
       <div className={s.card}>
         <Logo className={s.logo} />
-        <div className={s.brand}><b>Beat Pad</b> — 3d drum instrument</div>
+        <div className={s.brand}><b>BEAT PAD</b> — 3d drum instrument</div>
         <div className={s.leds} aria-hidden="true">
           {Array.from({ length: 16 }, (_, i) => (
             <i key={i} className={`${s.led} ${i < lit ? s.on : ''} ${i === lit - 1 && !done ? s.head : ''}`} />
