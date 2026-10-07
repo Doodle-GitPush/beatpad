@@ -51,7 +51,6 @@ export default function Overlay() {
       <header className={s.topbar}>
         <div className={s.left}>
           <div className={s.brand}><Logo className={s.logo} stroke={36} />beat pad<span>3d drum instrument</span></div>
-          {u.ready && <><span className={s.sep} aria-hidden="true" /><Tools /></>}
         </div>
         <div className={s.actions}>
           <a className={`${s.iconBtn} ${s.glass} ${s.textBtn}`} href="/2d.html" aria-label="Switch to the 2D version" title="Switch to the 2D version">2D</a>
@@ -94,7 +93,7 @@ export default function Overlay() {
 
       <Toast />
       <div className={`${s.hud} ${u.hud.show ? s.show : ''}`} style={{ left: u.hud.x, top: u.hud.y }}>{u.hud.text}</div>
-      {u.ready && <><Panel /><Guide /></>}
+      {u.ready && <><Tools /><Panel /><Guide /></>}
     </>
   );
 }

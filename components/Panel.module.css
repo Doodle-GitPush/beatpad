@@ -1,18 +1,15 @@
-.tools { display: flex; gap: 6px; min-width: 0; }
-.pill {
-  display: inline-flex; align-items: center; gap: 7px;
-  height: 34px; padding: 0 13px; border-radius: 999px; cursor: pointer; white-space: nowrap;
-  background: var(--panel-bg); border: 1px solid var(--panel-line);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  color: var(--ink); font: 500 11px var(--font-mono), monospace; letter-spacing: 0.06em; text-transform: lowercase;
+/* the create menu: on the left edge, vertically centred. Centred by
+   top/bottom 0 and auto margins, like the menu itself — no transform */
+.tools {
+  position: fixed; left: 20px; top: 0; bottom: 0; z-index: 7;
+  height: 38px; margin: auto 0; display: flex; pointer-events: none;
 }
-.pill:hover { border-color: color-mix(in srgb, var(--ink) 35%, transparent); }
-.pill:focus-visible, .btn:focus-visible, .ghost:focus-visible, .swatch:focus-visible, .close:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
-.pillOn { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+.btn:focus-visible, .ghost:focus-visible, .swatch:focus-visible, .close:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 .panel {
-  position: fixed; top: 64px; left: 20px; z-index: 6; width: 330px;
+  /* beside the create menu, centred on the same line */
+  position: fixed; top: 0; bottom: 0; left: 152px; z-index: 6; width: 330px;
+  height: fit-content; margin: auto 0;
   max-height: calc(100vh - 150px); overflow: auto; overscroll-behavior: contain;
   background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px;
   backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
@@ -84,7 +81,7 @@
 .empty { color: var(--muted); padding: 8px 0 4px; }
 
 @media (max-width: 700px) {
-.tools { max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-  .tools::-webkit-scrollbar { display: none; }
-  .panel { top: auto; bottom: 110px; left: 10px; right: 10px; width: auto; max-height: 52vh; }
+  /* a phone has the instrument across the middle, so the menu waits above the status bar */
+  .tools { top: auto; bottom: 150px; left: 12px; }
+  .panel { top: auto; bottom: 198px; left: 10px; right: 10px; width: auto; max-height: 52vh; }
 }

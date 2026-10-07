@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "framer-motion": "^14.0.0",
+    "lucide-react": "^1.52.0",
     "n8ao": "1.9.4",
     "next": "16.3.7",
     "postprocessing": "6.35.3",

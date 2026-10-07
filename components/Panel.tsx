@@ -12,24 +12,28 @@ import { STARTERS } from '@/lib/starters';
 import { KITS } from '@/lib/audio';
 import { voice } from '@/lib/audio';
 import { ui, useUi } from '@/lib/store';
+import { Disc3, Keyboard, Trophy } from 'lucide-react';
+import { CreateMenu, type CreateItem } from './CreateMenu';
 import s from './Panel.module.css';
 
 type Tab = 'challenge' | 'starters' | 'keys';
 const open = (panel: Tab | 'none') => ui.set({ panel });
 
+const isTab = (id: string): id is Tab => id === 'challenge' || id === 'starters' || id === 'keys';
+
 export function Tools() {
-  const u = useUi();
+  useUi();                                              // the challenge number and its dot follow the day
   const c = todaysChallenge();
   const doneToday = isDone(c.date);
-  const tab = (id: Tab, label: React.ReactNode) => (
-    <button type="button" className={`${s.pill} ${u.panel === id ? s.pillOn : ''}`} aria-pressed={u.panel === id}
-      onClick={(e) => { open(u.panel === id ? 'none' : id); e.currentTarget.blur(); }}>{label}</button>
-  );
+  const items: CreateItem[] = [
+    { id: 'challenge', icon: Trophy, label: <>daily challenge #{c.no}{!doneToday && <i className="bp-dot" aria-label="not done yet" />}</> },
+    { id: 'starters', icon: Disc3, label: 'starter beats' },
+    { id: 'keys', icon: Keyboard, label: 'customise keys' },
+  ];
   return (
     <div className={s.tools} id="bp-tools">
-      {tab('challenge', <>{!doneToday && <i className={s.dot} aria-hidden="true" />}daily challenge #{c.no}</>)}
-      {tab('starters', 'starter beats')}
-      {tab('keys', 'customise keys')}
+      <CreateMenu className="bp-create" anchor="left" label="create" panelW={256} items={items}
+        onSelect={(id) => { if (isTab(id)) open(id); }} />
     </div>
   );
 }
