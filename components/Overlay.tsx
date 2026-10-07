@@ -5,6 +5,7 @@ import { exportWav, hooks, selectStep, shareBeat } from '@/lib/sequencer';
 import { applyTheme } from '@/lib/theme';
 import { ui, useUi } from '@/lib/store';
 import Guide from './Guide';
+import { Logo } from './Logo';
 import { IconDownload, IconHelp, IconMoon, IconShare, IconSun } from './Icons';
 import Panel, { Tools } from './Panel';
 import s from './BeatPad.module.css';
@@ -49,7 +50,7 @@ export default function Overlay() {
     <>
       <header className={s.topbar}>
         <div className={s.left}>
-          <div className={s.brand}><i aria-hidden="true" />beat pad<span>3d drum instrument</span></div>
+          <div className={s.brand}><Logo className={s.logo} stroke={36} />beat pad<span>3d drum instrument</span></div>
           {u.ready && <><span className={s.sep} aria-hidden="true" /><Tools /></>}
         </div>
         <div className={s.actions}>

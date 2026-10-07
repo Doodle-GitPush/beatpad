@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useUi } from '@/lib/store';
 import s from './Preloader.module.css';
+import { Logo } from './Logo';
 
 /**
  * Boot screen styled like the device's step lights: 16 LEDs fill as the instrument loads.
@@ -40,6 +41,7 @@ export default function Preloader() {
   return (
     <div className={`${s.wrap} ${phase === 'fade' ? s.fade : ''}`} role="status" aria-live="polite" aria-label={`Loading, ${Math.round(p * 100)} percent`}>
       <div className={s.card}>
+        <Logo className={s.logo} />
         <div className={s.brand}><b>beat pad</b> — 3d drum instrument</div>
         <div className={s.leds} aria-hidden="true">
           {Array.from({ length: 16 }, (_, i) => (

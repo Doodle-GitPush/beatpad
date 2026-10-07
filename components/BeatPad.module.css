@@ -19,10 +19,10 @@
 }
 .left { display: flex; align-items: center; gap: 14px; min-width: 0; pointer-events: auto; }
 .brand {
-  display: inline-flex; align-items: baseline; gap: 8px; white-space: nowrap;
+  display: inline-flex; align-items: baseline; gap: 9px; white-space: nowrap;
   font: 500 13px var(--font-mono), monospace; letter-spacing: 0.06em; color: var(--ink); text-transform: lowercase;
 }
-.brand i { width: 8px; height: 8px; border-radius: 2px; background: var(--orange); align-self: center; box-shadow: 0 0 8px color-mix(in srgb, var(--orange) 60%, transparent); }
+.logo { width: 20px; height: 20px; align-self: center; flex: none; }
 .brand span { color: var(--muted); font-weight: 400; }
 .sep { width: 1px; height: 18px; background: var(--panel-line); }
 

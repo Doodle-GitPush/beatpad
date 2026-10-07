@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beat Pad</title>
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
 <meta name="theme-color" content="#d6d5d2">
 <script>(function(){try{var t=localStorage.getItem("beatpad.theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var d=document.documentElement;d.setAttribute("data-theme",t);d.style.colorScheme=t}catch(e){}})()</script>
 <style>
@@ -42,6 +43,8 @@
   }
   header b{color:var(--ink);font-weight:500}
   header a{color:var(--ink)}
+  header .brand{display:inline-flex;align-items:center;gap:8px}
+  header .logo{width:18px;height:18px;color:var(--ink);flex:none}
   .theme-btn{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-left:2px;
     background:none;border:1px solid color-mix(in srgb, var(--ink) 25%, transparent);border-radius:999px;
     padding:2px 9px 2px 7px;color:var(--ink);cursor:pointer;font:inherit;letter-spacing:inherit;text-transform:inherit}
@@ -244,7 +247,7 @@
 </head>
 <body>
 
-<header><span><b>beat pad</b> — 16 step drum instrument</span><span><span id="hint">tap any key to start audio</span> · <a href="/">3d version</a> · <button type="button" class="theme-btn" id="theme-btn"></button></span></header>
+<header><span class="brand"><svg class="logo" viewBox="-360 -360 720 720" fill="none" stroke="currentColor" stroke-width="36" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><g transform="rotate(-45)"><path id="lh" d="M-192-246H192A44 44 0 0 1 236-202V-86A44 44 0 0 1 192-42H48L0-86-48-42H-192A44 44 0 0 1-236-86V-202A44 44 0 0 1-192-246ZM0-246V-86"/><use href="#lh" transform="rotate(180)"/></g></svg><span><b>beat pad</b> — 16 step drum instrument</span></span><span><span id="hint">tap any key to start audio</span> · <a href="/">3d version</a> · <button type="button" class="theme-btn" id="theme-btn"></button></span></header>
 
 <div class="fit" id="fit">
   <div class="stage" id="stage">
