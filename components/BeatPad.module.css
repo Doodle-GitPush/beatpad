@@ -54,7 +54,7 @@
 }
 .drawer {
   position: relative; z-index: 0;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; flex-wrap: wrap; row-gap: 4px; align-items: center; justify-content: center;
   margin: 0 16px -14px; padding: 7px 8px 21px;      /* 14px of it tucks under the bar */
   border: 1px solid var(--panel-line); border-bottom: 0; border-radius: 16px 16px 0 0;
   background: color-mix(in srgb, var(--panel-bg) 100%, var(--ink) 5%);
@@ -77,6 +77,10 @@
 .statIcon { width: 14px; height: 14px; flex: none; stroke-width: 1.9; opacity: 0.85; }
 .stat b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 .hitStat { min-width: 13ch; }
+/* fixed-width numbers, so the drawer does not twitch while a knob turns */
+.num5, .num4 { display: inline-block; text-align: right; }
+.num5 { min-width: 5ch; }
+.num4 { min-width: 4ch; }
 .hitStat b { display: inline-block; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
 /* play/stop, like a music player: a filled round button */
 .transport {

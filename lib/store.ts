@@ -27,6 +27,9 @@ export interface UiState {
   state: 'stopped' | 'playing' | 'recording';
   bpm: number;
   kit: string;
+  /** filter cutoff, formatted ("12.0k"), and echo send in percent */
+  filter: string;
+  echo: number;
   pat: string;
   hit: string;
   cur: number;
@@ -54,6 +57,8 @@ let state: UiState = {
   state: 'stopped',
   bpm: 112,
   kit: '808',
+  filter: '18.0k',
+  echo: 15,
   pat: '1',
   hit: '—',
   cur: -1,

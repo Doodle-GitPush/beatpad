@@ -5,7 +5,7 @@ import { exportWav, hooks, selectStep, shareBeat, togglePlay } from '@/lib/seque
 import { applyTheme } from '@/lib/theme';
 import { ui, useUi } from '@/lib/store';
 import Guide from './Guide';
-import { Drum, Grid3x3, Metronome, Play, Square } from 'lucide-react';
+import { AudioWaveform, Drum, Grid3x3, Metronome, Play, Repeat, Square } from 'lucide-react';
 import { Logo } from './Logo';
 import { IconDownload, IconHelp, IconMoon, IconShare, IconSun } from './Icons';
 import Panel, { Tools } from './Panel';
@@ -79,6 +79,8 @@ export default function Overlay() {
           <span className={s.stat}><Metronome className={s.statIcon} aria-hidden="true" /><b>{u.bpm}</b>bpm</span>
           <span className={`${s.stat} ${s.hideSm}`}><Drum className={s.statIcon} aria-hidden="true" />kit <b>{u.kit}</b></span>
           <span className={s.stat}><Grid3x3 className={s.statIcon} aria-hidden="true" />pat <b>{u.pat}</b></span>
+          <span className={`${s.stat} ${s.hideSm}`}><AudioWaveform className={s.statIcon} aria-hidden="true" />filter <b className={s.num5}>{u.filter}</b>hz</span>
+          <span className={`${s.stat} ${s.hideSm}`}><Repeat className={s.statIcon} aria-hidden="true" />echo <b className={s.num4}>{u.echo}%</b></span>
           <span className={`${s.stat} ${s.hitStat} ${s.hideSm}`}>hit <b title={u.hit}>{u.hit}</b></span>
         </div>
         {/* the main thing: the pattern */}

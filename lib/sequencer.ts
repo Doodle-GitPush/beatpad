@@ -1,5 +1,5 @@
 import {
-  KITS, S, apply, audioTime, click, clamp, hasAudio, initAudio as initAudioCtx, renderPattern, stepDur, voice,
+  KITS, S, apply, audioTime, click, clamp, hasAudio, initAudio as initAudioCtx, renderPattern, stepDur, voice, cutoff,
 } from './audio';
 import { KEY_BY_ID, NUM_IDX, type Key } from './keys';
 import { ui } from './store';
@@ -108,8 +108,12 @@ export function updatePatUI() {
   ui.set({ pat: q.P + 1 + (q.pendingP >= 0 ? ' → ' + (q.pendingP + 1) : '') });
   drawSteps();
 }
+const hz = (f: number) => (f >= 1000 ? (f / 1000).toFixed(1) + 'k' : String(Math.round(f)));
 export function syncState() {
-  ui.set({ state: S.rec ? 'recording' : S.playing ? 'playing' : 'stopped', bpm: Math.round(S.bpm), kit: KITS[S.kit].name, rev: ui.get().rev + 1 });
+  ui.set({
+    state: S.rec ? 'recording' : S.playing ? 'playing' : 'stopped', bpm: Math.round(S.bpm), kit: KITS[S.kit].name,
+    filter: hz(cutoff(S.filter)), echo: Math.round(S.echo * 100), rev: ui.get().rev + 1,
+  });
 }
 export function setCur(s: number) { q.cur = s; ui.set({ cur: s }); }
 export const setHit = (hit: string) => ui.set({ hit });
