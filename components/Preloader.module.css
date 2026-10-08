@@ -16,9 +16,8 @@
 .mark path {
   fill: none; stroke: currentColor; stroke-width: 28;
   stroke-linecap: round; stroke-linejoin: round;
-  stroke-dasharray: 1 1;
-  /* slow enough that a fast load still shows the trace closing, rather than a jump */
-  transition: stroke-dashoffset 0.9s cubic-bezier(0.45, 0, 0.25, 1), fill 0.45s ease, stroke 0.45s ease;
+  stroke-dasharray: 1 1; stroke-dashoffset: 1;      /* driven per frame from Preloader.tsx */
+  transition: fill 0.45s ease, stroke 0.45s ease;
 }
 /* ready: the outlines fill solid and the dividers turn the page colour,
    so they read as cut lines between the keys */

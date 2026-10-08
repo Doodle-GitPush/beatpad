@@ -1,54 +1,68 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useUi } from '@/lib/store';
+import { useEffect, useRef, useState } from 'react';
+import { ui } from '@/lib/store';
 import { LOGO_DIVIDER, LOGO_OUTLINE } from './Logo';
 import s from './Preloader.module.css';
 
 /**
  * Boot screen: the logo traces itself as the instrument loads, then fills in when it is ready.
- * The trace follows real progress from the store; while the 3D bundle is still downloading
- * (no signal yet) it creeps forward on its own so it never looks stuck.
+ *
+ * The trace is driven from one rAF loop and written straight to the paths, not through React
+ * state and a CSS transition: a target that moves every frame restarts a transition every
+ * frame, which is what made the start stutter. Here the drawn amount eases toward the real
+ * progress (or a slow crawl while the 3D bundle is still downloading) at a capped speed, so
+ * it is smooth whether progress creeps or jumps, and the fill only starts once it has closed.
  */
+const EASE = 0.18;        // seconds for the trace to cover most of a gap
+const MAX_SPEED = 1.1;    // fraction of the logo per second, so a sudden "done" still draws visibly
+const MIN_SPEED = 0.35;   // …and never slower than this while behind, so the easing has no long tail
+
 export default function Preloader() {
-  const u = useUi();
-  const [crawl, setCrawl] = useState(0);
   const [phase, setPhase] = useState<'show' | 'fill' | 'fade' | 'gone'>('show');
+  const wrap = useRef<HTMLDivElement>(null);
+  const outlines = useRef<SVGPathElement[]>([]);
+  const dividers = useRef<SVGPathElement[]>([]);
 
   useEffect(() => {
-    let raf = 0;
-    const t0 = performance.now();
-    const tick = () => {
-      setCrawl(0.4 * (1 - Math.exp(-(performance.now() - t0) / 1600)));   // eases toward 40 %
-      raf = requestAnimationFrame(tick);
+    let raf = 0, last = performance.now(), shown = 0, lastPct = -1;
+    const t0 = last;
+    const frame = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const u = ui.get();
+      const done = u.ready || !!u.error;
+      const crawl = 0.4 * (1 - Math.exp(-(now - t0) / 1600));          // eases toward 40 %
+      const target = done ? 1 : Math.max(u.progress, crawl);
+      const gap = target - shown;
+      const step = gap > 0 ? Math.min(gap, Math.max(gap * Math.min(1, dt / EASE), MIN_SPEED * dt)) : 0;
+      shown = Math.min(1, shown + Math.min(step, MAX_SPEED * dt));
+      const outline = Math.min(1, shown / 0.85);                         // the outline takes most of it,
+      const divider = Math.max(0, (shown - 0.85) / 0.15);               // each key's divider the last stretch
+      outlines.current.forEach((p) => p.style.setProperty('stroke-dashoffset', String(1 - outline)));
+      dividers.current.forEach((p) => p.style.setProperty('stroke-dashoffset', String(1 - divider)));
+      const pct = Math.round(shown * 100);
+      if (pct !== lastPct && pct % 10 === 0) { lastPct = pct; wrap.current?.setAttribute('aria-label', `Loading, ${pct} percent`); }
+      if (done && shown > 0.999) { setPhase('fill'); return; }          // closed: stop driving, start the fill
+      raf = requestAnimationFrame(frame);
     };
-    raf = requestAnimationFrame(tick);
+    raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const done = u.ready || !!u.error;
   useEffect(() => {
-    if (!done) return;
-    const a = setTimeout(() => setPhase('fill'), 950);    // let the trace close first (0.9s in the CSS)
-    const b = setTimeout(() => setPhase('fade'), 1800);   // hold the filled mark a moment
-    const c = setTimeout(() => setPhase('gone'), 2500);
-    return () => { clearTimeout(a); clearTimeout(b); clearTimeout(c); };
-  }, [done]);
+    if (phase === 'fill') { const t = setTimeout(() => setPhase('fade'), 850); return () => clearTimeout(t); }   // hold the filled mark a moment
+    if (phase === 'fade') { const t = setTimeout(() => setPhase('gone'), 700); return () => clearTimeout(t); }
+  }, [phase]);
 
   if (phase === 'gone') return null;
-  const p = done ? 1 : Math.max(u.progress, crawl);
-  // the outline takes most of the load; each key's divider draws in over the last stretch
-  const outline = Math.min(1, p / 0.85);
-  const divider = Math.max(0, (p - 0.85) / 0.15);
-
   return (
-    <div className={`${s.wrap} ${phase === 'fade' ? s.fade : ''}`} role="status" aria-live="polite" aria-label={`Loading, ${Math.round(p * 100)} percent`}>
-      <svg className={`${s.mark} ${phase === 'fill' || phase === 'fade' ? s.filled : ''}`} viewBox="-360 -360 720 720" aria-hidden="true">
+    <div ref={wrap} className={`${s.wrap} ${phase === 'fade' ? s.fade : ''}`} role="status" aria-live="polite" aria-label="Loading, 0 percent">
+      <svg className={`${s.mark} ${phase !== 'show' ? s.filled : ''}`} viewBox="-360 -360 720 720" aria-hidden="true">
         <g transform="rotate(-45)">
-          {[0, 180].map((r) => (
-            <g key={r} transform={`rotate(${r})`}>
-              <path className={s.outline} d={LOGO_OUTLINE} pathLength={1} style={{ strokeDashoffset: 1 - outline }} />
-              <path className={s.divider} d={LOGO_DIVIDER} pathLength={1} style={{ strokeDashoffset: 1 - divider }} />
+          {[0, 1].map((i) => (
+            <g key={i} transform={`rotate(${i * 180})`}>
+              <path ref={(el) => { if (el) outlines.current[i] = el; }} className={s.outline} d={LOGO_OUTLINE} pathLength={1} />
+              <path ref={(el) => { if (el) dividers.current[i] = el; }} className={s.divider} d={LOGO_DIVIDER} pathLength={1} />
             </g>
           ))}
         </g>
