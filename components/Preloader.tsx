@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useUi } from '@/lib/store';
+import { LOGO_DIVIDER, LOGO_OUTLINE } from './Logo';
 import s from './Preloader.module.css';
-import { Logo } from './Logo';
 
 /**
- * Boot screen styled like the device's step lights: 16 LEDs fill as the instrument loads.
- * Real progress comes from the store; while the 3D bundle is still downloading (no signal yet)
- * it creeps forward on its own so it never looks stuck.
+ * Boot screen: the logo traces itself as the instrument loads, then fills in when it is ready.
+ * The trace follows real progress from the store; while the 3D bundle is still downloading
+ * (no signal yet) it creeps forward on its own so it never looks stuck.
  */
 export default function Preloader() {
   const u = useUi();
   const [crawl, setCrawl] = useState(0);
-  const [phase, setPhase] = useState<'show' | 'fade' | 'gone'>('show');
+  const [phase, setPhase] = useState<'show' | 'fill' | 'fade' | 'gone'>('show');
 
   useEffect(() => {
     let raf = 0;
@@ -29,30 +29,30 @@ export default function Preloader() {
   const done = u.ready || !!u.error;
   useEffect(() => {
     if (!done) return;
-    const a = setTimeout(() => setPhase('fade'), 350);    // let the last LED land
-    const b = setTimeout(() => setPhase('gone'), 1100);
-    return () => { clearTimeout(a); clearTimeout(b); };
+    const a = setTimeout(() => setPhase('fill'), 950);    // let the trace close first (0.9s in the CSS)
+    const b = setTimeout(() => setPhase('fade'), 1800);   // hold the filled mark a moment
+    const c = setTimeout(() => setPhase('gone'), 2500);
+    return () => { clearTimeout(a); clearTimeout(b); clearTimeout(c); };
   }, [done]);
 
   if (phase === 'gone') return null;
-  const p = u.error ? 1 : Math.max(u.progress, crawl);
-  const lit = Math.min(16, Math.round(p * 16));
+  const p = done ? 1 : Math.max(u.progress, crawl);
+  // the outline takes most of the load; each key's divider draws in over the last stretch
+  const outline = Math.min(1, p / 0.85);
+  const divider = Math.max(0, (p - 0.85) / 0.15);
 
   return (
     <div className={`${s.wrap} ${phase === 'fade' ? s.fade : ''}`} role="status" aria-live="polite" aria-label={`Loading, ${Math.round(p * 100)} percent`}>
-      <div className={s.card}>
-        <Logo className={s.logo} />
-        <div className={s.brand}><b>BEAT PAD</b> — 3d drum instrument</div>
-        <div className={s.leds} aria-hidden="true">
-          {Array.from({ length: 16 }, (_, i) => (
-            <i key={i} className={`${s.led} ${i < lit ? s.on : ''} ${i === lit - 1 && !done ? s.head : ''}`} />
+      <svg className={`${s.mark} ${phase === 'fill' || phase === 'fade' ? s.filled : ''}`} viewBox="-360 -360 720 720" aria-hidden="true">
+        <g transform="rotate(-45)">
+          {[0, 180].map((r) => (
+            <g key={r} transform={`rotate(${r})`}>
+              <path className={s.outline} d={LOGO_OUTLINE} pathLength={1} style={{ strokeDashoffset: 1 - outline }} />
+              <path className={s.divider} d={LOGO_DIVIDER} pathLength={1} style={{ strokeDashoffset: 1 - divider }} />
+            </g>
           ))}
-        </div>
-        <div className={s.meta}>
-          <span className={s.pct}>{String(Math.round(p * 100)).padStart(3, '0')}</span>
-          <span className={s.stage}>{done ? 'ready' : u.loadStage}</span>
-        </div>
-      </div>
+        </g>
+      </svg>
     </div>
   );
 }
