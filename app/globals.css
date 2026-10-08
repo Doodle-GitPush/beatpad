@@ -401,4 +401,19 @@ html, body {
   width: 6px; height: 6px; border-radius: 50%; margin-left: auto;
   background: var(--orange); box-shadow: 0 0 6px var(--orange);
 }
+/* ── hover, shut only ───────────────────────────────────────
+   The pill you point at is a transparent button; the shape you
+   see is .crt-body, a sibling on the layer below — so the hover
+   is read off the stage with :has() and drawn on the body. The
+   body's own transitions are re-stated with the colour added,
+   and only outside the press beat, which keeps its 120ms. */
+.bp-create:not([data-open="true"]):not([data-sink="true"]) .crt-body {
+  transition: scale 260ms cubic-bezier(0.22, 1, 0.36, 1), background-color 160ms ease, box-shadow 160ms ease;
+}
+@media (hover: hover) {
+  .bp-create:not([data-open="true"]):has(.crt-pill:hover) .crt-body {
+    background: color-mix(in srgb, var(--board), var(--ink) 9%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 32%, transparent);
+  }
+}
 .crt-pill:focus-visible, .crt-item button:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
