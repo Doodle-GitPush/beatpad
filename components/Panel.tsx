@@ -45,7 +45,8 @@ export default function Panel() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  if (u.panel === 'none') return null;
+  // the daily challenge opens in the dock's drawer instead — see ChallengeDrawer
+  if (u.panel === 'none' || u.panel === 'challenge') return null;
   const titles: Record<Tab, string> = { challenge: 'daily challenge', starters: 'starter beats', keys: 'customise keys' };
   return (
     <section className={s.panel} aria-label={titles[u.panel]}>
@@ -53,12 +54,28 @@ export default function Panel() {
         <span className={s.title}>{titles[u.panel]}</span>
         <button type="button" className={s.close} aria-label="Close panel" onClick={() => open('none')}>×</button>
       </div>
-      {u.panel === 'challenge' && <ChallengeTab entry={u.challengeEntry} />}
       {u.panel === 'starters' && <StartersTab />}
       {u.panel === 'keys' && <KeysTab editKey={u.editKey} colorway={u.colorway} />}
     </section>
   );
 }
+
+/** the daily challenge, as the contents of the expanded drawer above the pattern bar */
+export function ChallengeDrawer() {
+  const u = useUi();
+  return (
+    <div className={s.drawerPane} aria-label="daily challenge">
+      <div className={s.head}>
+        <h2 className={s.drawerTitle}>Daily Challenge</h2>
+        <button type="button" className={s.close} aria-label="Close daily challenge" onClick={() => open('none')}>×</button>
+      </div>
+      <ChallengeTab entry={u.challengeEntry} />
+    </div>
+  );
+}
+
+/** sentence case for the generated rule texts */
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 function ChallengeTab({ entry }: { entry: string | null }) {
   useUi();                                              // re-check the rules on every change
@@ -70,30 +87,30 @@ function ChallengeTab({ entry }: { entry: string | null }) {
   const days = streak();
   return (
     <>
-      <p className={s.sub}>#{c.no} · {c.label} · same challenge for everyone, new one at midnight
+      <p className={s.sub}>#{c.no} · {c.label} · Same challenge for everyone, new one at midnight
         {days > 0 && <> · <b>{days}-day streak</b></>}</p>
       <ul className={s.rules}>
         {rules.map((r) => (
           <li key={r.id} className={`${s.rule} ${r.ok ? s.ok : ''}`}>
             <span className={s.check} aria-hidden="true">✓</span>
-            <span className={s.ruleText}>{r.label}</span>
+            <span className={s.ruleText}>{cap(r.label)}</span>
             <span className="sr-only">{r.ok ? '(done)' : '(not yet)'}</span>
           </li>
         ))}
       </ul>
       {!active && (
         <div className={s.row}>
-          <button type="button" className={s.btn} onClick={startChallenge}>start challenge</button>
-          <span className={s.meta}>sets {KITS[c.kit].name} · {c.bpm} bpm on an empty pattern</span>
+          <button type="button" className={s.btn} onClick={startChallenge}>Start challenge</button>
+          <span className={s.meta}>Sets {KITS[c.kit].name} · {c.bpm} bpm on an empty pattern</span>
         </div>
       )}
-      {active && !complete && <p className={s.meta}>build your beat — the list ticks off as you go.</p>}
+      {active && !complete && <p className={s.meta}>Build your beat — the list ticks off as you go.</p>}
       {active && complete && (
         <div className={s.row}>
           <button type="button" className={s.btn} onClick={async () => { await shareBeat(c.date); ui.set({ rev: ui.get().rev + 1 }); }}>
-            share your entry
+            Share your entry
           </button>
-          {done ? <span className={s.done}>✓ done today</span> : <span className={s.meta}>all rules met!</span>}
+          {done ? <span className={s.done}>✓ Done today</span> : <span className={s.meta}>All rules met!</span>}
         </div>
       )}
     </>
