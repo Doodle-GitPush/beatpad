@@ -6,14 +6,14 @@ import { isDone, streak, todaysChallenge } from '@/lib/challenge';
 import { COLORWAYS, DECAYS, TUNE_RANGE, VOICE_LIST, isDefaultKey, keyConfig, resetAllKeys, resetKey } from '@/lib/keyconfig';
 import { KEY_BY_ID } from '@/lib/keys';
 import {
-  challengeStatus, ensureAudio, keysChanged, loadStarter, setColorway, shareBeat, startChallenge,
+  challengeStatus, ensureAudio, keysChanged, setColorway, shareBeat, startChallenge,
 } from '@/lib/sequencer';
-import { STARTERS } from '@/lib/starters';
 import { KITS } from '@/lib/audio';
 import { voice } from '@/lib/audio';
 import { ui, useUi } from '@/lib/store';
 import { Disc3, Keyboard, Trophy } from 'lucide-react';
 import { CreateMenu, type CreateItem } from './CreateMenu';
+import AlbumRail from './AlbumRail';
 import s from './Panel.module.css';
 
 type Tab = 'challenge' | 'starters' | 'keys';
@@ -116,15 +116,8 @@ function ChallengeTab({ entry }: { entry: string | null }) {
 function StartersTab() {
   return (
     <>
-      <p className={s.sub}>Loads into your next empty pattern — your own patterns are never overwritten without asking.</p>
-      <div className={s.list}>
-        {STARTERS.map((st) => (
-          <div key={st.id} className={s.card}>
-            <div><b>{cap(st.name)}</b><p>{cap(st.blurb)} · {st.bpm} bpm · {KITS[st.kit].name}</p></div>
-            <button type="button" className={s.ghost} onClick={() => loadStarter(st.id)}>Load</button>
-          </div>
-        ))}
-      </div>
+      <p className={s.sub}>Pull a record out to play it. It loads into your next empty pattern, so your own patterns are never overwritten without asking.</p>
+      <AlbumRail />
     </>
   );
 }

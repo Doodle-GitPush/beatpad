@@ -216,14 +216,17 @@ function loadIntoSlot(slot: number, pattern: Set<string>[], params: Partial<type
   save(); updatePatUI(); syncState();
 }
 
-export function loadStarter(id: string) {
+/** loads a starter into the next free pattern; false if there was nowhere to put it.
+    `quiet` skips the "press ○ to play" hint, for callers that start playback themselves */
+export function loadStarter(id: string, quiet = false): boolean {
   const st = STARTERS.find((x) => x.id === id);
-  if (!st) return;
+  if (!st) return false;
   const slot = freeSlot();
-  if (slot == null) return;
+  if (slot == null) return false;
   loadIntoSlot(slot, starterPattern(st), { bpm: st.bpm, kit: st.kit, swing: st.swing, filter: st.filter, echo: st.echo });
   setHit(`${st.name} → pattern ${slot + 1}`);
-  ui.set({ hint: S.playing ? 'starts on the next bar' : 'press ○ to play' });
+  if (!quiet) ui.set({ hint: S.playing ? 'starts on the next bar' : 'press ○ to play' });
+  return true;
 }
 
 /* ---------- daily challenge ---------- */
