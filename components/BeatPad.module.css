@@ -65,6 +65,7 @@
   position: relative; z-index: 1;
   display: flex; justify-content: center;
   padding: 10px 14px; border-radius: 20px;
+  background: var(--panel-solid);         /* opaque: the drawer's tucked edge must not show through */
   box-shadow: var(--panel-shadow);
 }
 .stat { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; white-space: nowrap; }

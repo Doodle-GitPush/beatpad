@@ -11,6 +11,7 @@
   --hud-bg: #f1f0ec;
   --hud-ink: #222222;
   --panel-bg: rgba(244, 243, 239, 0.86);
+  --panel-solid: rgb(244, 243, 239);   /* --panel-bg without the see-through, for parts that cover others */
   --panel-line: rgba(0, 0, 0, 0.08);
   --panel-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.28);
 }
@@ -27,6 +28,7 @@
   --hud-bg: #2b2a28;
   --hud-ink: #f1f0ec;
   --panel-bg: rgba(34, 34, 32, 0.86);
+  --panel-solid: rgb(34, 34, 32);
   --panel-line: rgba(255, 255, 255, 0.08);
   --panel-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.7);
 }
