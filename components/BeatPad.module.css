@@ -51,8 +51,9 @@
   box-shadow: var(--panel-shadow);
   font: 500 12px var(--font-mono), monospace; letter-spacing: 0.04em; color: var(--muted); text-transform: lowercase;
 }
-.stat { display: inline-flex; align-items: baseline; gap: 6px; padding: 0 10px; white-space: nowrap; }
+.stat { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; white-space: nowrap; }
 .stat + .stat { border-left: 1px solid var(--panel-line); }
+.statIcon { width: 14px; height: 14px; flex: none; stroke-width: 1.9; opacity: 0.85; }
 .stat b { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 .hitStat { min-width: 9ch; }
 .hitStat b { display: inline-block; max-width: 14ch; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }

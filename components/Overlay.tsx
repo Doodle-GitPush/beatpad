@@ -5,6 +5,7 @@ import { exportWav, hooks, selectStep, shareBeat } from '@/lib/sequencer';
 import { applyTheme } from '@/lib/theme';
 import { ui, useUi } from '@/lib/store';
 import Guide from './Guide';
+import { Drum, Grid3x3, Metronome } from 'lucide-react';
 import { Logo } from './Logo';
 import { IconDownload, IconHelp, IconMoon, IconShare, IconSun } from './Icons';
 import Panel, { Tools } from './Panel';
@@ -74,9 +75,9 @@ export default function Overlay() {
 
       <footer className={`${s.statusbar} ${s.glass}`} aria-label="Transport">
         <span className={`${s.stat} ${s.state}`}><i className={`${s.led} ${led}`} aria-hidden="true" /><b>{u.state}</b></span>
-        <span className={s.stat}><b>{u.bpm}</b>bpm</span>
-        <span className={`${s.stat} ${s.hideSm}`}>kit <b>{u.kit}</b></span>
-        <span className={s.stat}>pat <b>{u.pat}</b></span>
+        <span className={s.stat}><Metronome className={s.statIcon} aria-hidden="true" /><b>{u.bpm}</b>bpm</span>
+        <span className={`${s.stat} ${s.hideSm}`}><Drum className={s.statIcon} aria-hidden="true" />kit <b>{u.kit}</b></span>
+        <span className={s.stat}><Grid3x3 className={s.statIcon} aria-hidden="true" />pat <b>{u.pat}</b></span>
         {u.hit !== '—' && <span className={`${s.stat} ${s.hitStat} ${s.hideSm}`}><b title={u.hit}>{u.hit}</b></span>}
         <span className={s.steps} role="group" aria-label="Steps — click one, then press keys to edit it">
           {[0, 1, 2, 3].map((g) => (

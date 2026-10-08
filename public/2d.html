@@ -234,6 +234,9 @@
   .led.play{background:var(--led-play)}
   .led.rec{background:var(--orange);box-shadow:0 0 6px rgba(217,88,42,.7)}
   .stats{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+  .stats>span{display:inline-flex;align-items:center;gap:6px}
+  /* bpm and kit icons: Lucide (ISC) */
+  .ico{width:14px;height:14px;flex:none;opacity:.85}
   .steps{display:flex;gap:10px}
   .steps .grp{display:flex;gap:4px}
   .steps i{width:12px;height:12px;border-radius:3px;background:var(--step);box-shadow:inset 0 1px 1px rgba(0,0,0,.15);transition:background .05s}
@@ -296,8 +299,8 @@
 <div class="readout">
   <div class="stats">
     <span class="state"><i class="led" id="led"></i><b id="r-state">stopped</b></span>
-    <span>bpm <b id="r-bpm">112</b></span>
-    <span>kit <b id="r-kit">808</b></span>
+    <span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11.4V9.1"/><path d="m12 17 6.59-6.59"/><path d="m15.05 5.7-.218-.691a3 3 0 0 0-5.663 0L4.418 19.695A1 1 0 0 0 5.37 21h13.253a1 1 0 0 0 .951-1.31L18.45 16.2"/><circle cx="20" cy="9" r="2"/></svg>bpm <b id="r-bpm">112</b></span>
+    <span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 8 8"/><path d="m22 2-8 8"/><ellipse cx="12" cy="9" rx="10" ry="5"/><path d="M7 13.4v7.9"/><path d="M12 14v8"/><path d="M17 13.4v7.9"/><path d="M2 9v8a10 5 0 0 0 20 0V9"/></svg>kit <b id="r-kit">808</b></span>
     <span>hit <b id="r-hit">—</b></span>
   </div>
   <div class="steps" id="steps"></div>
