@@ -11,6 +11,7 @@ import { STARTERS, starterPattern } from './starters';
 /** the 3D view registers these so changes made from panels show up on the device */
 export const hooks = {
   syncControls: () => {}, applyLook: () => {}, invalidate: () => {},
+  playIntro: () => {},                   // the preloader calls this as it fades: the camera swoops in
   setQuality: (q: 'auto' | 'ultra' | 'high' | 'medium' | 'low') => { void q; },
 };
 

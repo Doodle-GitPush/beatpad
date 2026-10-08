@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { hooks } from '@/lib/sequencer';
 import { ui } from '@/lib/store';
 import { LOGO_DIVIDER, LOGO_OUTLINE } from './Logo';
 import s from './Preloader.module.css';
@@ -51,7 +52,10 @@ export default function Preloader() {
 
   useEffect(() => {
     if (phase === 'fill') { const t = setTimeout(() => setPhase('fade'), 850); return () => clearTimeout(t); }   // hold the filled mark a moment
-    if (phase === 'fade') { const t = setTimeout(() => setPhase('gone'), 700); return () => clearTimeout(t); }
+    if (phase === 'fade') {
+      hooks.playIntro();                                     // the camera swoops in as the screen clears
+      const t = setTimeout(() => setPhase('gone'), 700); return () => clearTimeout(t);
+    }
   }, [phase]);
 
   if (phase === 'gone') return null;

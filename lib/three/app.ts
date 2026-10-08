@@ -208,12 +208,13 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
   stage.composer.render();                 // first frame (also compiles the post-processing passes)
   await nextFrame();
   raf = requestAnimationFrame(frame);
-  stage.startIntro();
+  stage.startIntro();                      // parked; the preloader's fade sets it off
+  hooks.playIntro = stage.playIntro;
   progress(1, 'ready');
   ui.set({ ready: true });
 
   const stop = () => {
-    hooks.syncControls = () => {}; hooks.applyLook = () => {};
+    hooks.syncControls = () => {}; hooks.applyLook = () => {}; hooks.playIntro = () => {};
     Object.keys(anchors).forEach((k) => delete anchors[k]);
     cancelAnimationFrame(raf);
     window.removeEventListener('resize', onResize);

@@ -186,21 +186,39 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
     controls.update();
   }
 
-  /* intro: glide in from a low angle; any interaction cancels it */
-  let intro: { t0: number; dur: number; d: number; el1: number } | null = null;
-  const startIntro = () => { intro = { t0: performance.now(), dur: 2800, d: fitCamera(), el1: Math.PI / 2 - 0.55 }; };
-  const cancelIntro = () => { intro = null; };
-  const stepIntro = (now: number) => {
-    if (!intro) return;
-    const { t0, dur, d, el1 } = intro;
-    const p = clamp((now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
-    const az = -0.6 * (1 - e), el = 0.3 + (el1 - 0.3) * e, dist = d * (1.35 - 0.35 * e);
+  /* intro: a swoosh in to the pad. startIntro() parks the camera far out, low
+     and swung to one side, and holds it there behind the preloader; playIntro()
+     (called as the preloader fades) sweeps it round and in — fast off the mark,
+     landing softly — while the lens narrows from wide to the resting 17°, which
+     is most of what sells the speed. Any interaction cancels it. */
+  const BASE_FOV = 17;
+  let intro: { t0: number | null; dur: number; d: number; el1: number } | null = null;
+  const introPose = (e: number) => {
+    const { d, el1 } = intro!;
+    const az = -1.05 * (1 - e), el = 0.32 + (el1 - 0.32) * e, dist = d * (2.3 - 1.3 * e);
     camera.position.set(
       TARGET.x + Math.sin(az) * Math.cos(el) * dist,
       TARGET.y + Math.sin(el) * dist,
       TARGET.z + Math.cos(az) * Math.cos(el) * dist,
     );
-    if (p >= 1) intro = null;
+    camera.fov = BASE_FOV + 11 * (1 - e); camera.updateProjectionMatrix();
+    camera.lookAt(controls.target);
+    controls.maxDistance = Infinity;                 // the far start is outside the zoom limits
+  };
+  const endIntro = () => { intro = null; camera.fov = BASE_FOV; fitCamera(); };
+  const startIntro = () => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { resetView(); return; }
+    camera.fov = BASE_FOV;
+    intro = { t0: null, dur: 2600, d: fitCamera(), el1: Math.PI / 2 - 0.55 };
+    introPose(0); invalidate();
+  };
+  const playIntro = () => { if (intro && intro.t0 === null) intro.t0 = performance.now(); };
+  const cancelIntro = () => { if (intro) endIntro(); };
+  const stepIntro = (now: number) => {
+    if (!intro || intro.t0 === null) return;
+    const p = clamp((now - intro.t0) / intro.dur), e = 1 - Math.pow(1 - p, 4);
+    introPose(e);
+    if (p >= 1) endIntro();
   };
 
   let viewSet = false;
@@ -214,6 +232,7 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
     invalidate();
     const prev = camera.position.distanceTo(controls.target);
     fitCamera();
+    if (intro) controls.maxDistance = Infinity;   // keep the parked/flying intro camera where it is
     if (!intro && (!viewSet || prev > controls.maxDistance || prev < controls.minDistance)) { resetView(); viewSet = true; }
   }
 
@@ -258,7 +277,7 @@ export function createStage(canvas: HTMLCanvasElement, initialTier: Tier) {
   }
 
   return {
-    renderer, scene, camera, controls, composer, resize, resetView, startIntro, cancelIntro, stepIntro, hasIntro: () => !!intro,
+    renderer, scene, camera, controls, composer, resize, resetView, startIntro, playIntro, cancelIntro, stepIntro, hasIntro: () => !!intro && intro.t0 !== null,
     setPointer, stepLights, setTheme, dispose, invalidate, takeDirty, moveShadows, setTier, getTier: () => tier,
   };
 }
