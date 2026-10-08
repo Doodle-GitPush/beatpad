@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Play, Square } from 'lucide-react';
 import { KITS } from '@/lib/audio';
 import { loadStarter, togglePlay } from '@/lib/sequencer';
 import { STARTERS, type Starter } from '@/lib/starters';
@@ -125,7 +126,9 @@ export default function AlbumRail() {
           <button type="button" className={s.nav} onClick={() => go(focus - 1)} disabled={focus === 0} aria-label="Previous starter">‹</button>
           <button type="button" className={s.play} style={{ '--bg': SLEEVE[cur.id].bg } as React.CSSProperties}
             onClick={() => toggleRecord(cur)} aria-label={curOut ? `Stop ${cur.name}` : `Play ${cur.name}`}>
-            {curOut ? 'Stop' : 'Play'}
+            {curOut
+              ? <Square className={s.playIcon} fill="currentColor" aria-hidden="true" />
+              : <Play className={`${s.playIcon} ${s.playTri}`} fill="currentColor" aria-hidden="true" />}
           </button>
           <button type="button" className={s.nav} onClick={() => go(focus + 1)} disabled={focus === n - 1} aria-label="Next starter">›</button>
         </div>

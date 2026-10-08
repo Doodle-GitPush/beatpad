@@ -97,11 +97,14 @@
 .nav:disabled { opacity: 0.35; cursor: default; }
 .nav:not(:disabled):hover { border-color: color-mix(in srgb, var(--ink) 35%, transparent); }
 .play {
-  height: 30px; min-width: 64px; padding: 0 14px; border-radius: 999px; border: 0; cursor: pointer;
-  background: var(--bg); color: #fff; font: 600 13px var(--font-wanted), var(--font-sans), sans-serif;
-  box-shadow: 0 6px 14px -8px var(--bg);
+  width: 36px; height: 36px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+  display: grid; place-items: center;
+  background: var(--bg); color: #fff;                  /* flat: the sleeve's colour, nothing else */
   transition: background-color 0.3s, transform 0.1s;
 }
+.play:hover { transform: scale(1.05); }
+.playIcon { width: 14px; height: 14px; stroke-width: 2; }
+.playTri { margin-left: 2px; }                          /* a play triangle looks centred a touch right of centre */
 .play:active { transform: scale(0.96); }
 .nav:focus-visible, .play:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
