@@ -73,7 +73,8 @@ export function initAudio(): boolean {
   buildGraph(live);
   liveCtx = live;
   loadPoke(live);
-  ratchetBuf = makeRatchet(live);
+  tickBufs.click = makeClick(live);
+  tickBufs.ratchet = makeRatchet(live);
   applyAll();
   return true;
 }
@@ -84,26 +85,27 @@ export function initAudio(): boolean {
    compressor, and never into an exported WAV — and follows the volume
    fader so pulling it down silences these too. */
 let liveCtx: AudioContext | undefined;
-let pokeBuf: AudioBuffer | undefined;      // pitch knob: the recorded poke
-let ratchetBuf: AudioBuffer | undefined;   // jog wheel: a synthesised mouse click, below
-const lastTick = { poke: 0, ratchet: 0 };
+type Tick = 'poke' | 'click' | 'ratchet';
+const tickBufs: Partial<Record<Tick, AudioBuffer>> = {};   // pitch knob: the recorded poke · jog wheel: a mouse click · kit roller: a ratchet
+const lastTick: Record<Tick, number> = { poke: 0, click: 0, ratchet: 0 };
+const TICK_GAIN: Record<Tick, number> = { poke: 0.7, click: 0.45, ratchet: 0.45 };
 
 function loadPoke(c: AudioContext) {
   fetch('/sounds/poke.wav')
     .then((r) => r.arrayBuffer())
     .then((b) => c.decodeAudioData(b))
-    .then((buf) => { if (liveCtx === c) pokeBuf = buf; })
+    .then((buf) => { if (liveCtx === c) tickBufs.poke = buf; })
     .catch(() => {});                                   // no click is fine; the knob still works
 }
 
-/* The jog wheel's click, voiced like a mouse button: dry and plastic,
+/* The jog wheel's tick, voiced like a mouse button: dry and plastic,
    with almost no ring. Three parts, 18ms in all, built once sample by
    sample:
    - the snap: 1ms of bright noise, the switch's metal dome popping
    - the shell: two damped resonances (2.1k and 5.3k) dying in ~1.5ms —
      a small hollow plastic body, which is what makes it read as "mouse"
    - the thud: a faint 160Hz bump under it, the finger landing */
-function makeRatchet(c: BaseAudioContext) {
+function makeClick(c: BaseAudioContext) {
   const sr = c.sampleRate, n = Math.round(sr * 0.018);
   const buf = c.createBuffer(1, n, sr), d = buf.getChannelData(0);
   let prev = 0;
@@ -119,21 +121,39 @@ function makeRatchet(c: BaseAudioContext) {
   return buf;
 }
 
+/* The kit roller's ratchet: brighter and more metallic than the click.
+   A 5ms burst of noise for the pawl striking the tooth, and a quick
+   3.2kHz ping for the body ringing — 25ms in all. */
+function makeRatchet(c: BaseAudioContext) {
+  const sr = c.sampleRate, n = Math.round(sr * 0.025);
+  const buf = c.createBuffer(1, n, sr), d = buf.getChannelData(0);
+  let lp = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / sr;
+    lp += 0.55 * ((Math.random() * 2 - 1) - lp);                       // soften the noise a little
+    const strike = lp * Math.exp(-t / 0.0012) * (t < 0.005 ? 1 : 0);
+    const ring = Math.sin(2 * Math.PI * 3200 * t) * Math.exp(-t / 0.004) * 0.45;
+    d[i] = (strike + ring) * 0.9;
+  }
+  return buf;
+}
+
 /** one detent click; spinning fast is capped at one click per 25ms so it never turns into a buzz */
-export function tick(kind: 'poke' | 'ratchet' = 'poke') {
-  const c = liveCtx, buf = kind === 'poke' ? pokeBuf : ratchetBuf;
+export function tick(kind: Tick) {
+  const c = liveCtx, buf = tickBufs[kind];
   if (!c || !buf || c.state !== 'running') return;
   if (c.currentTime - lastTick[kind] < 0.025) return;
   lastTick[kind] = c.currentTime;
   const src = c.createBufferSource(), g = c.createGain();
   src.buffer = buf;
-  g.gain.value = (kind === 'poke' ? 0.7 : 0.45) * S.vol;
+  g.gain.value = TICK_GAIN[kind] * S.vol;
   src.connect(g).connect(c.destination);
   src.start();
 }
 export function closeAudio() {
   const c = ctx as AudioContext | undefined;
-  ctx = undefined; liveCtx = undefined; pokeBuf = ratchetBuf = undefined;
+  ctx = undefined; liveCtx = undefined;
+  (Object.keys(tickBufs) as Tick[]).forEach((k) => delete tickBufs[k]);
   c?.close?.().catch(() => {});
 }
 
