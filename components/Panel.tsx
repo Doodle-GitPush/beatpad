@@ -51,15 +51,21 @@ export function DrawerPanel() {
   // what the drawer showed last, so it keeps its contents while it closes
   const [tab, setTab] = useState<Tab>('challenge');
   if (u.panel !== 'none' && u.panel !== tab) setTab(u.panel);
+  // bumped on every open and every switch, so the contents remount and blur in again
+  const [seen, setSeen] = useState(u.panel);
+  const [gen, setGen] = useState(0);
+  if (u.panel !== seen) { setSeen(u.panel); if (u.panel !== 'none') setGen(gen + 1); }
   return (
     <div className={s.drawerPane} aria-label={TITLES[tab]}>
-      <div className={s.head}>
-        <h2 className={s.drawerTitle}>{TITLES[tab]}</h2>
-        <button type="button" className={s.close} aria-label={`Close ${TITLES[tab]}`} onClick={() => open('none')}>×</button>
+      <div key={gen} className={s.swap}>
+        <div className={s.head}>
+          <h2 className={s.drawerTitle}>{TITLES[tab]}</h2>
+          <button type="button" className={s.close} aria-label={`Close ${TITLES[tab]}`} onClick={() => open('none')}>×</button>
+        </div>
+        {tab === 'challenge' && <ChallengeTab entry={u.challengeEntry} />}
+        {tab === 'starters' && <StartersTab />}
+        {tab === 'keys' && <KeysTab editKey={u.editKey} colorway={u.colorway} />}
       </div>
-      {tab === 'challenge' && <ChallengeTab entry={u.challengeEntry} />}
-      {tab === 'starters' && <StartersTab />}
-      {tab === 'keys' && <KeysTab editKey={u.editKey} colorway={u.colorway} />}
     </div>
   );
 }

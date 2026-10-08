@@ -60,32 +60,29 @@
   backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
   font-size: 11px;
 }
-/* the drawer pulls open upward: a 0fr → 1fr grid row animates to the
-   content's own height, whatever it is, with no measuring */
+/* the drawer pulls open upward. Its body's height is set inline from the
+   measured contents (0 when shut), so the same transition covers opening,
+   closing, and morphing from one item to a taller or shorter one */
 .drawerBody {
-  display: grid; grid-template-rows: 0fr;
-  contain: inline-size;            /* the challenge text wraps to the drawer; it never widens the dock */
-  transition: grid-template-rows 0.42s cubic-bezier(0.4, 0, 0.2, 1);           /* closing */
+  overflow: hidden; max-height: min(52vh, 420px);
+  contain: inline-size;            /* the text wraps to the drawer; it never widens the dock */
+  transition: height 0.42s cubic-bezier(0.4, 0, 0.2, 1);                      /* closing */
 }
 .drawerOpen .drawerBody {
-  grid-template-rows: 1fr;
-  transition: grid-template-rows 0.6s cubic-bezier(0.22, 1, 0.36, 1);         /* opening: slow enough to watch */
+  overflow-y: auto; overscroll-behavior: contain;
+  transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);                     /* opening and morphing: slow enough to watch */
 }
 /* open, it carries text over the instrument, so it goes solid */
 .drawer { transition: background-color 0.2s; }
 .drawerOpen { background: color-mix(in srgb, var(--panel-solid), var(--ink) 4%); }
-.drawerInner { min-height: 0; overflow: hidden; }
-/* the contents blur in as the drawer opens — 120ms behind the height so
-   they arrive with it rather than ahead of it — and blur out faster on close */
+/* closing: the contents blur out, faster than the height. Opening and
+   switching are a keyframe on the contents themselves (see .swap in
+   Panel.module.css), so they replay every time */
 .drawerInner > * {
   opacity: 0; filter: blur(12px); translate: 0 10px;
   transition: opacity 0.26s ease, filter 0.3s ease, translate 0.3s ease;
 }
-.drawerOpen .drawerInner > * {
-  opacity: 1; filter: blur(0); translate: 0 0;
-  transition: opacity 0.5s ease 0.12s, filter 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s, translate 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s;
-}
-.drawerOpen .drawerInner { overflow: auto; max-height: min(52vh, 420px); overscroll-behavior: contain; }
+.drawerOpen .drawerInner > * { opacity: 1; filter: none; translate: none; transition: none; }
 .drawerOpen .readouts { border-bottom: 1px solid var(--panel-line); padding-bottom: 7px; }
 .readouts { display: flex; flex-wrap: wrap; row-gap: 4px; align-items: center; justify-content: center; }
 .bar {

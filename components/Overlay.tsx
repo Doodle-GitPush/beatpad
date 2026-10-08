@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { exportWav, hooks, selectStep, shareBeat, togglePlay } from '@/lib/sequencer';
 import { applyTheme } from '@/lib/theme';
 import { ui, useUi } from '@/lib/store';
@@ -13,6 +13,10 @@ import s from './BeatPad.module.css';
 
 /** keep focus off buttons after a click so Space keeps playing the beat */
 const blurAfter = (fn: () => void) => (e: React.MouseEvent<HTMLElement>) => { fn(); e.currentTarget.blur(); };
+
+/** the open drawer's height limit — the same as its CSS max-height — so the
+    height animates over the distance you can see, not to a hidden target */
+const drawerCap = () => Math.min(window.innerHeight * 0.52, 420);
 
 export default function Overlay() {
   const u = useUi();
@@ -31,6 +35,17 @@ export default function Overlay() {
     window.addEventListener('pointerdown', onDown);
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('pointerdown', onDown); };
   }, [help]);
+
+  // the drawer's contents, measured, so its height can animate to them
+  const paneRef = useRef<HTMLDivElement>(null);
+  const [paneH, setPaneH] = useState(0);
+  useEffect(() => {
+    const el = paneRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setPaneH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [u.ready]);
 
   if (u.error) {
     return (
@@ -85,8 +100,8 @@ export default function Overlay() {
             <span className={`${s.stat} ${s.hitStat} ${s.hideSm}`}>hit <b title={u.hit}>{u.hit}</b></span>
           </div>
           {/* under the readouts, pulls open for whatever the create menu picked; collapsed it is zero rows tall */}
-          <div className={s.drawerBody} inert={u.panel === 'none'}>
-            <div className={s.drawerInner}>{u.ready && <DrawerPanel />}</div>
+          <div className={s.drawerBody} inert={u.panel === 'none'} style={{ height: u.panel === 'none' ? 0 : Math.min(paneH, drawerCap()) }}>
+            <div className={s.drawerInner} ref={paneRef}>{u.ready && <DrawerPanel />}</div>
           </div>
         </div>
         {/* the main thing: the pattern */}
