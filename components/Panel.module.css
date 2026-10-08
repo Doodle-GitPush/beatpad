@@ -2,24 +2,22 @@
 .tools { display: flex; flex: none; }
 .btn:focus-visible, .ghost:focus-visible, .swatch:focus-visible, .close:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
-.panel {
-  /* centred above the create menu it came from */
-  position: fixed; bottom: 124px; left: 0; right: 0; margin: 0 auto; z-index: 6; width: 330px;
-  max-height: calc(100vh - 200px); overflow: auto; overscroll-behavior: contain;
-  background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px;
-  backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
-  box-shadow: var(--panel-shadow); color: var(--ink);
-  padding: 16px 16px 18px; font: 400 13px/1.5 var(--font-sans), sans-serif;
-  animation: rise 0.22s ease-out;
-}
-@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
-/* the challenge inside the drawer: the panel's type, none of its chrome */
+/* what the drawer shows when it is pulled open */
 .drawerPane {
   padding: 12px 14px 4px; color: var(--ink); text-align: left;
   font: 400 13px/1.5 var(--font-wanted), var(--font-sans), sans-serif; letter-spacing: normal; text-transform: none;
 }
 .drawerPane .head { align-items: center; margin-bottom: 2px; }
-.drawerPane .btn { text-transform: none; }
+.drawerPane .btn, .drawerPane .ghost, .drawerPane .label { text-transform: none; }
+.drawerPane .card b { font-weight: 600; }
+/* the key editor sits in two columns where there is room, so the drawer
+   stays low and the keys you are editing stay in view above it */
+.keysGrid { display: grid; gap: 4px 22px; }
+@media (min-width: 701px) {
+  .keysGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .keysSide { border-left: 1px solid var(--panel-line); padding-left: 22px; }
+}
+@media (max-width: 700px) { .keysSide { border-top: 1px solid var(--panel-line); padding-top: 12px; } }
 .drawerTitle { margin: 0; font: 600 18px/1.25 var(--font-wanted), var(--font-sans), sans-serif; letter-spacing: -0.01em; }
 .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 4px; }
 .title { font: 500 12px var(--font-mono), monospace; letter-spacing: 0.08em; text-transform: lowercase; }
@@ -70,8 +68,7 @@
   display: inline-grid; place-items: center; min-width: 28px; height: 24px; padding: 0 6px; border-radius: 6px;
   background: var(--ink); color: var(--bg); font: 500 12px var(--font-mono), monospace; margin-right: 8px;
 }
-.hr { height: 1px; background: var(--panel-line); margin: 14px 0; border: 0; }
-.swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 8px; }
 .swatch {
   display: grid; gap: 5px; justify-items: center; padding: 8px 4px; border-radius: 10px; cursor: pointer;
   border: 1px solid var(--panel-line); background: transparent; color: var(--muted);
@@ -83,6 +80,3 @@
 .chip:first-child { margin-left: 0; }
 .empty { color: var(--muted); padding: 8px 0 4px; }
 
-@media (max-width: 700px) {
-  .panel { bottom: 148px; left: 10px; right: 10px; margin: 0; width: auto; max-height: 52vh; }
-}

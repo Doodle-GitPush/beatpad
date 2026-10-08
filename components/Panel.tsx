@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { audioTime } from '@/lib/audio';
 import { isDone, streak, todaysChallenge } from '@/lib/challenge';
 import { COLORWAYS, DECAYS, TUNE_RANGE, VOICE_LIST, isDefaultKey, keyConfig, resetAllKeys, resetKey } from '@/lib/keyconfig';
@@ -38,38 +38,28 @@ export function Tools() {
   );
 }
 
-export default function Panel() {
+const TITLES: Record<Tab, string> = { challenge: 'Daily Challenge', starters: 'Starter Beats', keys: 'Customise Keys' };
+
+/** the contents of the dock's drawer when it is pulled open: the challenge, the starters or the key editor */
+export function DrawerPanel() {
   const u = useUi();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.code === 'Escape' && ui.get().panel !== 'none') open('none'); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
-  // the daily challenge opens in the dock's drawer instead — see ChallengeDrawer
-  if (u.panel === 'none' || u.panel === 'challenge') return null;
-  const titles: Record<Tab, string> = { challenge: 'daily challenge', starters: 'starter beats', keys: 'customise keys' };
+  // what the drawer showed last, so it keeps its contents while it closes
+  const [tab, setTab] = useState<Tab>('challenge');
+  if (u.panel !== 'none' && u.panel !== tab) setTab(u.panel);
   return (
-    <section className={s.panel} aria-label={titles[u.panel]}>
+    <div className={s.drawerPane} aria-label={TITLES[tab]}>
       <div className={s.head}>
-        <span className={s.title}>{titles[u.panel]}</span>
-        <button type="button" className={s.close} aria-label="Close panel" onClick={() => open('none')}>×</button>
+        <h2 className={s.drawerTitle}>{TITLES[tab]}</h2>
+        <button type="button" className={s.close} aria-label={`Close ${TITLES[tab]}`} onClick={() => open('none')}>×</button>
       </div>
-      {u.panel === 'starters' && <StartersTab />}
-      {u.panel === 'keys' && <KeysTab editKey={u.editKey} colorway={u.colorway} />}
-    </section>
-  );
-}
-
-/** the daily challenge, as the contents of the expanded drawer above the pattern bar */
-export function ChallengeDrawer() {
-  const u = useUi();
-  return (
-    <div className={s.drawerPane} aria-label="daily challenge">
-      <div className={s.head}>
-        <h2 className={s.drawerTitle}>Daily Challenge</h2>
-        <button type="button" className={s.close} aria-label="Close daily challenge" onClick={() => open('none')}>×</button>
-      </div>
-      <ChallengeTab entry={u.challengeEntry} />
+      {tab === 'challenge' && <ChallengeTab entry={u.challengeEntry} />}
+      {tab === 'starters' && <StartersTab />}
+      {tab === 'keys' && <KeysTab editKey={u.editKey} colorway={u.colorway} />}
     </div>
   );
 }
@@ -124,8 +114,8 @@ function StartersTab() {
       <div className={s.list}>
         {STARTERS.map((st) => (
           <div key={st.id} className={s.card}>
-            <div><b>{st.name}</b><p>{st.blurb} · {st.bpm} bpm · {KITS[st.kit].name}</p></div>
-            <button type="button" className={s.ghost} onClick={() => loadStarter(st.id)}>load</button>
+            <div><b>{cap(st.name)}</b><p>{cap(st.blurb)} · {st.bpm} bpm · {KITS[st.kit].name}</p></div>
+            <button type="button" className={s.ghost} onClick={() => loadStarter(st.id)}>Load</button>
           </div>
         ))}
       </div>
@@ -143,42 +133,44 @@ function KeysTab({ editKey, colorway }: { editKey: string | null; colorway: numb
   const groups = ['drums', 'percussion', 'cymbals', 'synth'] as const;
 
   return (
-    <>
+    <div className={s.keysGrid}>
+      <div>
       {!k || !cfg ? (
         <p className={s.empty}>Click any key on the device (or press it on your keyboard) to change its sound.</p>
       ) : (
         <>
-          <p className={s.sub}><span className={s.keyTag}>{k.L.t ?? (k.id === 'enter' ? '↵' : k.id)}</span>patterns keep working — they just play the new sound</p>
+          <p className={s.sub}><span className={s.keyTag}>{k.L.t ?? (k.id === 'enter' ? '↵' : k.id)}</span>Patterns keep working — they just play the new sound</p>
           <label className={s.field}>
-            <span className={s.label}>sound</span>
+            <span className={s.label}>Sound</span>
             <select className={s.select} value={cfg.voice} onChange={(e) => change({ voice: e.target.value })}>
               {groups.map((g) => (
-                <optgroup key={g} label={g}>
+                <optgroup key={g} label={cap(g)}>
                   {VOICE_LIST.filter((v) => v.group === g).map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
                 </optgroup>
               ))}
             </select>
           </label>
           <label className={s.field}>
-            <span className={s.label}>tune <b>{cfg.tune > 0 ? '+' : ''}{cfg.tune} st</b></span>
+            <span className={s.label}>Tune <b>{cfg.tune > 0 ? '+' : ''}{cfg.tune} st</b></span>
             <input className={s.range} type="range" min={-TUNE_RANGE} max={TUNE_RANGE} step={1} value={cfg.tune}
               onChange={(e) => change({ tune: Number(e.target.value) })} />
           </label>
           <label className={s.field}>
-            <span className={s.label}>length <b>{Math.round(DECAYS[decayIdx] * 100)}%</b></span>
+            <span className={s.label}>Length <b>{Math.round(DECAYS[decayIdx] * 100)}%</b></span>
             <input className={s.range} type="range" min={0} max={DECAYS.length - 1} step={1} value={decayIdx}
               onChange={(e) => change({ decay: DECAYS[Number(e.target.value)] })} />
           </label>
           <div className={s.row}>
-            <button type="button" className={s.ghost} onClick={preview}>preview</button>
+            <button type="button" className={s.ghost} onClick={preview}>Preview</button>
             <button type="button" className={s.ghost} disabled={isDefaultKey(editKey!)}
-              onClick={() => { resetKey(editKey!); keysChanged(); preview(); }}>reset key</button>
+              onClick={() => { resetKey(editKey!); keysChanged(); preview(); }}>Reset key</button>
           </div>
         </>
       )}
-      <hr className={s.hr} />
+      </div>
+      <div className={s.keysSide}>
       <div className={s.field}>
-        <span className={s.label}>keycaps</span>
+        <span className={s.label}>Keycaps</span>
         <div className={s.swatches} role="radiogroup" aria-label="Keycap colourway">
           {COLORWAYS.map((cw, i) => (
             <button key={cw.id} type="button" role="radio" aria-checked={colorway === i} className={`${s.swatch} ${colorway === i ? s.swatchOn : ''}`}
@@ -186,14 +178,15 @@ function KeysTab({ editKey, colorway }: { editKey: string | null; colorway: numb
               <span className={s.chips} aria-hidden="true">
                 {(['white', 'orange', 'dark'] as const).map((r) => <i key={r} className={s.chip} style={{ background: cw.caps[r].cap }} />)}
               </span>
-              {cw.name}
+              {cap(cw.name)}
             </button>
           ))}
         </div>
       </div>
       <button type="button" className={s.ghost} onClick={() => { if (window.confirm('Reset every key to its original sound?')) { resetAllKeys(); keysChanged(); } }}>
-        reset all sounds
+        Reset all sounds
       </button>
-    </>
+      </div>
+    </div>
   );
 }

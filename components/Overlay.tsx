@@ -8,7 +8,7 @@ import Guide from './Guide';
 import { AudioWaveform, Drum, Grid3x3, Metronome, Play, Repeat, Square } from 'lucide-react';
 import { Logo } from './Logo';
 import { IconDownload, IconHelp, IconMoon, IconShare, IconSun } from './Icons';
-import Panel, { ChallengeDrawer, Tools } from './Panel';
+import { DrawerPanel, Tools } from './Panel';
 import s from './BeatPad.module.css';
 
 /** keep focus off buttons after a click so Space keeps playing the beat */
@@ -75,7 +75,7 @@ export default function Overlay() {
 
       <footer className={s.dock} aria-label="Transport">
         {/* the drawer: readouts tucked behind the pattern bar's top edge */}
-        <div className={`${s.drawer} ${u.panel === 'challenge' ? s.drawerOpen : ''}`}>
+        <div className={`${s.drawer} ${u.panel !== 'none' ? s.drawerOpen : ''}`}>
           <div className={s.readouts}>
             <span className={s.stat}><Metronome className={s.statIcon} aria-hidden="true" /><b>{u.bpm}</b>bpm</span>
             <span className={`${s.stat} ${s.hideSm}`}><Drum className={s.statIcon} aria-hidden="true" />kit <b>{u.kit}</b></span>
@@ -84,9 +84,9 @@ export default function Overlay() {
             <span className={`${s.stat} ${s.hideSm}`}><Repeat className={s.statIcon} aria-hidden="true" />echo <b className={s.num4}>{u.echo}%</b></span>
             <span className={`${s.stat} ${s.hitStat} ${s.hideSm}`}>hit <b title={u.hit}>{u.hit}</b></span>
           </div>
-          {/* under the readouts, pulls open for the daily challenge; collapsed it is zero rows tall */}
-          <div className={s.drawerBody} inert={u.panel !== 'challenge'}>
-            <div className={s.drawerInner}>{u.ready && <ChallengeDrawer />}</div>
+          {/* under the readouts, pulls open for whatever the create menu picked; collapsed it is zero rows tall */}
+          <div className={s.drawerBody} inert={u.panel === 'none'}>
+            <div className={s.drawerInner}>{u.ready && <DrawerPanel />}</div>
           </div>
         </div>
         {/* the main thing: the pattern */}
@@ -115,7 +115,7 @@ export default function Overlay() {
 
       <Toast />
       <div className={`${s.hud} ${u.hud.show ? s.show : ''}`} style={{ left: u.hud.x, top: u.hud.y }}>{u.hud.text}</div>
-      {u.ready && <><Panel /><Guide /></>}
+      {u.ready && <Guide />}
     </>
   );
 }
