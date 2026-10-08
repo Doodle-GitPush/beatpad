@@ -85,7 +85,7 @@ export function initAudio(): boolean {
    fader so pulling it down silences these too. */
 let liveCtx: AudioContext | undefined;
 let pokeBuf: AudioBuffer | undefined;      // pitch knob: the recorded poke
-let ratchetBuf: AudioBuffer | undefined;   // jog wheel: synthesised below
+let ratchetBuf: AudioBuffer | undefined;   // jog wheel: a synthesised mouse click, below
 const lastTick = { poke: 0, ratchet: 0 };
 
 function loadPoke(c: AudioContext) {
@@ -96,20 +96,25 @@ function loadPoke(c: AudioContext) {
     .catch(() => {});                                   // no click is fine; the knob still works
 }
 
-/* The jog wheel's ratchet: lighter and brighter than the poke so the two
-   controls feel different. A 5ms burst of noise for the pawl striking
-   the tooth, and a quick 3.2kHz ping for the body ringing — 25ms in all,
-   built once, sample by sample. */
+/* The jog wheel's click, voiced like a mouse button: dry and plastic,
+   with almost no ring. Three parts, 18ms in all, built once sample by
+   sample:
+   - the snap: 1ms of bright noise, the switch's metal dome popping
+   - the shell: two damped resonances (2.1k and 5.3k) dying in ~1.5ms —
+     a small hollow plastic body, which is what makes it read as "mouse"
+   - the thud: a faint 160Hz bump under it, the finger landing */
 function makeRatchet(c: BaseAudioContext) {
-  const sr = c.sampleRate, n = Math.round(sr * 0.025);
+  const sr = c.sampleRate, n = Math.round(sr * 0.018);
   const buf = c.createBuffer(1, n, sr), d = buf.getChannelData(0);
-  let lp = 0;
+  let prev = 0;
   for (let i = 0; i < n; i++) {
     const t = i / sr;
-    lp += 0.55 * ((Math.random() * 2 - 1) - lp);                       // soften the noise a little
-    const strike = lp * Math.exp(-t / 0.0012) * (t < 0.005 ? 1 : 0);
-    const ring = Math.sin(2 * Math.PI * 3200 * t) * Math.exp(-t / 0.004) * 0.45;
-    d[i] = (strike + ring) * 0.9;
+    const white = Math.random() * 2 - 1;
+    const bright = white - prev; prev = white;                          // first difference: tilts the noise up
+    const snap = bright * Math.exp(-t / 0.00045) * 0.5;
+    const shell = (Math.sin(2 * Math.PI * 2100 * t) * 0.55 + Math.sin(2 * Math.PI * 5300 * t) * 0.3) * Math.exp(-t / 0.0014);
+    const thud = Math.sin(2 * Math.PI * 160 * t) * Math.exp(-t / 0.004) * 0.25;
+    d[i] = (snap + shell + thud) * 0.85;
   }
   return buf;
 }
