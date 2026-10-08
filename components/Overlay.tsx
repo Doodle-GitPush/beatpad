@@ -73,23 +73,29 @@ export default function Overlay() {
 
       {help && <HelpMenu close={() => setHelp(false)} />}
 
-      <footer className={`${s.statusbar} ${s.glass}`} aria-label="Transport">
-        <span className={`${s.stat} ${s.state}`}><i className={`${s.led} ${led}`} aria-hidden="true" /><b>{u.state}</b></span>
-        <span className={s.stat}><Metronome className={s.statIcon} aria-hidden="true" /><b>{u.bpm}</b>bpm</span>
-        <span className={`${s.stat} ${s.hideSm}`}><Drum className={s.statIcon} aria-hidden="true" />kit <b>{u.kit}</b></span>
-        <span className={s.stat}><Grid3x3 className={s.statIcon} aria-hidden="true" />pat <b>{u.pat}</b></span>
-        {u.hit !== '—' && <span className={`${s.stat} ${s.hitStat} ${s.hideSm}`}><b title={u.hit}>{u.hit}</b></span>}
-        <span className={s.steps} role="group" aria-label="Steps — click one, then press keys to edit it">
-          {[0, 1, 2, 3].map((g) => (
-            <span className={s.grp} key={g}>
-              {[0, 1, 2, 3].map((n) => {
-                const i = g * 4 + n;
-                const cls = [s.step, u.has[i] && s.has, u.cur === i && s.cur, u.sel === i && s.sel].filter(Boolean).join(' ');
-                return <button type="button" key={i} className={cls} aria-pressed={u.sel === i} title={`step ${i + 1}`} aria-label={`step ${i + 1}${u.has[i] ? ', has sounds' : ''}`} onClick={blurAfter(() => selectStep(i))} />;
-              })}
-            </span>
-          ))}
-        </span>
+      <footer className={s.dock} aria-label="Transport">
+        {/* the drawer: readouts tucked behind the pattern bar's top edge */}
+        <div className={s.drawer}>
+          <span className={`${s.stat} ${s.state}`}><i className={`${s.led} ${led}`} aria-hidden="true" /><b>{u.state}</b></span>
+          <span className={s.stat}><Metronome className={s.statIcon} aria-hidden="true" /><b>{u.bpm}</b>bpm</span>
+          <span className={`${s.stat} ${s.hideSm}`}><Drum className={s.statIcon} aria-hidden="true" />kit <b>{u.kit}</b></span>
+          <span className={s.stat}><Grid3x3 className={s.statIcon} aria-hidden="true" />pat <b>{u.pat}</b></span>
+          <span className={`${s.stat} ${s.hitStat} ${s.hideSm}`}>hit <b title={u.hit}>{u.hit}</b></span>
+        </div>
+        {/* the main thing: the pattern */}
+        <div className={`${s.bar} ${s.glass}`}>
+          <span className={s.steps} role="group" aria-label="Steps — click one, then press keys to edit it">
+            {[0, 1, 2, 3].map((g) => (
+              <span className={s.grp} key={g}>
+                {[0, 1, 2, 3].map((n) => {
+                  const i = g * 4 + n;
+                  const cls = [s.step, u.has[i] && s.has, u.cur === i && s.cur, u.sel === i && s.sel].filter(Boolean).join(' ');
+                  return <button type="button" key={i} className={cls} aria-pressed={u.sel === i} title={`step ${i + 1}`} aria-label={`step ${i + 1}${u.has[i] ? ', has sounds' : ''}`} onClick={blurAfter(() => selectStep(i))} />;
+                })}
+              </span>
+            ))}
+          </span>
+        </div>
       </footer>
 
       <Toast />
