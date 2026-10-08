@@ -376,31 +376,26 @@ html, body {
 }
 .bp-create[data-open="true"] .crt-body { box-shadow: 0 0 0 1px var(--pane-edge), var(--panel-shadow); }
 
-/* ── anchored bottom ─────────────────────────────────────────
-   Sitting on a line at the foot of the page, there is no 244px
-   square to spread into, so the stage is one pill tall and one
-   panel wide and the shape grows straight up from the pill.
+/* ── anchored bottom-left ────────────────────────────────────
+   Sitting in a toolbar, there is no 244px square to spread
+   into, so the stage shrinks to the pill and takes its place in
+   the row, and the shape grows up and to the right from it.
    Still no transform, so the auto-margin argument above holds:
-   `margin: auto auto 0` keeps the side-to-side centring and pins
-   the bottom edge, so the box rises on every frame of the open
-   with nothing for Framer to overwrite.
-
-   The stage is the PANEL's width, not the pill's, for the same
-   reason: auto margins only centre sideways while there is room
-   to centre in — a box wider than its stage is pushed flush
-   left instead. Upward overflow has no such rule, so one pill of
-   height is enough. The stage itself takes no presses, so the
-   scene under the empty part of it still does. */
-.crt-stage[data-anchor="bottom"] {
-  width: var(--panel-w); height: var(--pill-h);
+   with `inset: 0` and explicit sizes, `margin: auto 0 0`
+   resolves the over-constrained box to the stage's bottom-left
+   corner on every frame of the open — nothing for Framer to
+   overwrite. */
+.crt-stage[data-anchor="bottom-left"] {
+  width: var(--pill-w); height: var(--pill-h);
   flex: none;
   pointer-events: none;
+  z-index: 2;
 }
-.crt-stage[data-anchor="bottom"] .crt-body,
-.crt-stage[data-anchor="bottom"] .crt-pill,
-.crt-stage[data-anchor="bottom"] .crt-panel { margin: auto auto 0; }
-.crt-stage[data-anchor="bottom"] .crt-pill { pointer-events: auto; }
-.crt-stage[data-anchor="bottom"][data-open="true"] .crt-pill { pointer-events: none; }
+.crt-stage[data-anchor="bottom-left"] .crt-body,
+.crt-stage[data-anchor="bottom-left"] .crt-pill,
+.crt-stage[data-anchor="bottom-left"] .crt-panel { margin: auto 0 0; }
+.crt-stage[data-anchor="bottom-left"] .crt-pill { pointer-events: auto; }
+.crt-stage[data-anchor="bottom-left"][data-open="true"] .crt-pill { pointer-events: none; }
 .bp-create .crt-item button { white-space: nowrap; }
 .crt-item .bp-dot {
   width: 6px; height: 6px; border-radius: 50%; margin-left: auto;

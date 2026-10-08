@@ -1,16 +1,10 @@
-/* the create menu: centred at the foot of the page, just above
-   the dock (its top edge is about 92px up). Centred by auto margins
-   and fit-content, like the menu itself — no transform */
-.tools {
-  position: fixed; left: 0; right: 0; bottom: 114px; z-index: 7;
-  width: fit-content; height: 38px; margin: 0 auto;
-  display: flex; pointer-events: none;
-}
+/* the create menu lives at the left end of the pattern bar */
+.tools { display: flex; flex: none; }
 .btn:focus-visible, .ghost:focus-visible, .swatch:focus-visible, .close:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 .panel {
   /* centred above the create menu it came from */
-  position: fixed; bottom: 162px; left: 0; right: 0; margin: 0 auto; z-index: 6; width: 330px;
+  position: fixed; bottom: 124px; left: 0; right: 0; margin: 0 auto; z-index: 6; width: 330px;
   max-height: calc(100vh - 200px); overflow: auto; overscroll-behavior: contain;
   background: var(--panel-bg); border: 1px solid var(--panel-line); border-radius: 14px;
   backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
@@ -82,7 +76,5 @@
 .empty { color: var(--muted); padding: 8px 0 4px; }
 
 @media (max-width: 700px) {
-  /* a phone's status bar spans the width, so the menu waits just above it */
-  .tools { bottom: 100px; }
   .panel { bottom: 148px; left: 10px; right: 10px; margin: 0; width: auto; max-height: 52vh; }
 }

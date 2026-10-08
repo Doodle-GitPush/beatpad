@@ -141,6 +141,12 @@ function stop() {
   syncState();
 }
 
+/** the transport button: same as the ○ key */
+export function togglePlay() {
+  ensureAudio();
+  if (S.playing) stop(); else start();
+}
+
 function fnDown(fn: NonNullable<Key['fn']>) {
   if (fn === 'play') { if (S.playing) stop(); else start(); }
   if (fn === 'rec') { q.recHeld = true; q.recUsed = false; }

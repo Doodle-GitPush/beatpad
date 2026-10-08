@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { exportWav, hooks, selectStep, shareBeat } from '@/lib/sequencer';
+import { exportWav, hooks, selectStep, shareBeat, togglePlay } from '@/lib/sequencer';
 import { applyTheme } from '@/lib/theme';
 import { ui, useUi } from '@/lib/store';
 import Guide from './Guide';
-import { Drum, Grid3x3, Metronome } from 'lucide-react';
+import { Drum, Grid3x3, Metronome, Play, Square } from 'lucide-react';
 import { Logo } from './Logo';
 import { IconDownload, IconHelp, IconMoon, IconShare, IconSun } from './Icons';
 import Panel, { Tools } from './Panel';
@@ -76,14 +76,21 @@ export default function Overlay() {
       <footer className={s.dock} aria-label="Transport">
         {/* the drawer: readouts tucked behind the pattern bar's top edge */}
         <div className={s.drawer}>
-          <span className={`${s.stat} ${s.state}`}><i className={`${s.led} ${led}`} aria-hidden="true" /><b>{u.state}</b></span>
           <span className={s.stat}><Metronome className={s.statIcon} aria-hidden="true" /><b>{u.bpm}</b>bpm</span>
           <span className={`${s.stat} ${s.hideSm}`}><Drum className={s.statIcon} aria-hidden="true" />kit <b>{u.kit}</b></span>
           <span className={s.stat}><Grid3x3 className={s.statIcon} aria-hidden="true" />pat <b>{u.pat}</b></span>
           <span className={`${s.stat} ${s.hitStat} ${s.hideSm}`}>hit <b title={u.hit}>{u.hit}</b></span>
         </div>
         {/* the main thing: the pattern */}
-        <div className={`${s.bar} ${s.glass}`}>
+        <div className={s.bar}>
+          {u.ready && <Tools />}
+          <button type="button" className={`${s.transport} ${u.state === 'recording' ? s.transportRec : ''}`}
+            onClick={blurAfter(togglePlay)} aria-label={u.state === 'stopped' ? 'Play' : 'Stop'} title={u.state === 'stopped' ? 'Play (space)' : 'Stop (space)'}>
+            {u.state === 'stopped'
+              ? <Play className={s.transportIcon} fill="currentColor" aria-hidden="true" />
+              : <Square className={s.transportIcon} fill="currentColor" aria-hidden="true" />}
+          </button>
+          <span className={s.state}><i className={`${s.led} ${led}`} aria-hidden="true" /><b>{u.state}</b></span>
           <span className={s.steps} role="group" aria-label="Steps — click one, then press keys to edit it">
             {[0, 1, 2, 3].map((g) => (
               <span className={s.grp} key={g}>
@@ -100,7 +107,7 @@ export default function Overlay() {
 
       <Toast />
       <div className={`${s.hud} ${u.hud.show ? s.show : ''}`} style={{ left: u.hud.x, top: u.hud.y }}>{u.hud.text}</div>
-      {u.ready && <><Tools /><Panel /><Guide /></>}
+      {u.ready && <><Panel /><Guide /></>}
     </>
   );
 }
