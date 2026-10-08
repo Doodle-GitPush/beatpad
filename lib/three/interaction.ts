@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { KITS, S, clamp, cutoff } from '../audio';
+import { KITS, S, clamp, cutoff, tick } from '../audio';
 import { KEY_BY_CODE } from '../keys';
 import { clearSelection, ensureAudio, paramChanged, press, q, release, selectStep, setHit } from '../sequencer';
 import { ui } from '../store';
@@ -36,15 +36,24 @@ export function attachInteraction(stage: Stage, dev: Device) {
   };
 
   /* ---------- control setters ---------- */
-  const setKnob = (key: KnobKey, v: number) => { S[key] = clamp(v); dev.setKnobVisual(key); paramChanged(key); hud(dev.knobs[key].grp, FMT[key](S[key])); };
+  // pitch moves in semitone detents: click each time it crosses one
+  const semis = () => Math.round((S.pitch - 0.5) * 24);
+  let lastSemi = semis();
+  const setKnob = (key: KnobKey, v: number) => {
+    S[key] = clamp(v); dev.setKnobVisual(key); paramChanged(key); hud(dev.knobs[key].grp, FMT[key](S[key]));
+    if (key === 'pitch' && semis() !== lastSemi) { lastSemi = semis(); tick(); }
+  };
   const setVol = (v: number) => {
     v = clamp(v); if (Math.abs(v - 0.8) < 0.025) v = 0.8;          // detent
     S.vol = v; dev.setFaderVisual(); stage.invalidate(); stage.moveShadows(); paramChanged('vol'); hud(dev.faderCap, 'vol ' + Math.round(S.vol * 100) + '%');
   };
   const setKit = (k: number) => { S.kit = (k + KITS.length) % KITS.length; paramChanged('kit'); hud(dev.rollerMesh, 'kit ' + KITS[S.kit].name); };
+  // the jog wheel ratchets: one click per whole BPM, i.e. every 4° of spin
+  let lastBpm = Math.round(S.bpm);
   const turnJog = (deg: number) => {
     jogRot += deg; dev.jogGrp.rotation.y = (-jogRot * Math.PI) / 180; stage.invalidate();
     S.bpm = clamp(S.bpm + deg / 4, 60, 200); paramChanged('bpm');
+    if (Math.round(S.bpm) !== lastBpm) { lastBpm = Math.round(S.bpm); tick('ratchet'); }
     hud(dev.jogGrp, 'tempo ' + Math.round(S.bpm) + ' bpm', 0.6);
   };
   const roll = (dy: number) => {

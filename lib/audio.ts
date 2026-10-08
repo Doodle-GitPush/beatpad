@@ -69,13 +69,66 @@ export function initAudio(): boolean {
     return false;
   }
   const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  buildGraph(new AC());
+  const live = new AC();
+  buildGraph(live);
+  liveCtx = live;
+  loadPoke(live);
+  ratchetBuf = makeRatchet(live);
   applyAll();
   return true;
 }
+
+/* ---------- control feedback ---------- */
+/* A short click for detented controls, so a knob feels like it has steps.
+   It goes straight to the speakers — not through the filter, echo or
+   compressor, and never into an exported WAV — and follows the volume
+   fader so pulling it down silences these too. */
+let liveCtx: AudioContext | undefined;
+let pokeBuf: AudioBuffer | undefined;      // pitch knob: the recorded poke
+let ratchetBuf: AudioBuffer | undefined;   // jog wheel: synthesised below
+const lastTick = { poke: 0, ratchet: 0 };
+
+function loadPoke(c: AudioContext) {
+  fetch('/sounds/poke.wav')
+    .then((r) => r.arrayBuffer())
+    .then((b) => c.decodeAudioData(b))
+    .then((buf) => { if (liveCtx === c) pokeBuf = buf; })
+    .catch(() => {});                                   // no click is fine; the knob still works
+}
+
+/* The jog wheel's ratchet: lighter and brighter than the poke so the two
+   controls feel different. A 5ms burst of noise for the pawl striking
+   the tooth, and a quick 3.2kHz ping for the body ringing — 25ms in all,
+   built once, sample by sample. */
+function makeRatchet(c: BaseAudioContext) {
+  const sr = c.sampleRate, n = Math.round(sr * 0.025);
+  const buf = c.createBuffer(1, n, sr), d = buf.getChannelData(0);
+  let lp = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / sr;
+    lp += 0.55 * ((Math.random() * 2 - 1) - lp);                       // soften the noise a little
+    const strike = lp * Math.exp(-t / 0.0012) * (t < 0.005 ? 1 : 0);
+    const ring = Math.sin(2 * Math.PI * 3200 * t) * Math.exp(-t / 0.004) * 0.45;
+    d[i] = (strike + ring) * 0.9;
+  }
+  return buf;
+}
+
+/** one detent click; spinning fast is capped at one click per 25ms so it never turns into a buzz */
+export function tick(kind: 'poke' | 'ratchet' = 'poke') {
+  const c = liveCtx, buf = kind === 'poke' ? pokeBuf : ratchetBuf;
+  if (!c || !buf || c.state !== 'running') return;
+  if (c.currentTime - lastTick[kind] < 0.025) return;
+  lastTick[kind] = c.currentTime;
+  const src = c.createBufferSource(), g = c.createGain();
+  src.buffer = buf;
+  g.gain.value = (kind === 'poke' ? 0.7 : 0.45) * S.vol;
+  src.connect(g).connect(c.destination);
+  src.start();
+}
 export function closeAudio() {
   const c = ctx as AudioContext | undefined;
-  ctx = undefined;
+  ctx = undefined; liveCtx = undefined; pokeBuf = ratchetBuf = undefined;
   c?.close?.().catch(() => {});
 }
 
