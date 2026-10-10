@@ -168,6 +168,8 @@
 }
 .keys dd { margin: 0; color: var(--muted); font-size: 12px; }
 .menuRow { display: flex; gap: 8px; flex-wrap: wrap; }
+.credit { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--panel-line); color: var(--muted); font-size: 12px; line-height: 1.5; }
+.credit a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
 .seg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; padding: 2px; border-radius: 9px; border: 1px solid var(--panel-line); margin-bottom: 6px; }
 .segBtn { border: 0; border-radius: 7px; padding: 6px 0; cursor: pointer; background: transparent; color: var(--muted); font: 500 11px var(--font-mono), monospace; }
 .segBtn:hover { color: var(--ink); }

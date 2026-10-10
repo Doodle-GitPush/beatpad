@@ -186,6 +186,10 @@ function HelpMenu({ close }: { close: () => void }) {
         <button type="button" className={s.menuBtn} onClick={() => { close(); ui.set({ guide: 0, panel: 'none' }); }}>replay the guide</button>
         <a className={s.menuBtn} href="/2d.html">2d version</a>
       </div>
+      <p className={s.credit}>
+        Based on <a href="https://knob.design/numpad" target="_blank" rel="noopener noreferrer">k•no•b•less ↗</a>,
+        designed by Ben Fryc and developed by Work Louder. This is a fan-made instrument, not affiliated with them.
+      </p>
     </div>
   );
 }

@@ -81,3 +81,10 @@ types/n8ao.d.ts         typings for the n8ao ambient-occlusion package
 The engine (audio, sequencer, three.js scene) is plain TypeScript with no React inside it; React only renders
 the overlay and owns mount/unmount. `three`, `postprocessing` and `n8ao` are pinned to versions known to work
 together.
+
+## Credits
+
+The instrument is based on **[k•no•b•less](https://knob.design/numpad)**, a numpad, big-knob and slider
+macroset designed by **Ben Fryc** and developed by **Work Louder**. Beat Pad is a fan-made tribute and is
+not affiliated with them.
+
