@@ -36,6 +36,25 @@ export default function Overlay() {
     return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('pointerdown', onDown); };
   }, [help]);
 
+  // a click outside the dock puts the drawer away. Presses on the instrument never reach here
+  // (the 3D handler stops them), so you can still play keys, or pick one to customise, with it
+  // open; and it is a click, not a press, so orbiting the camera with a drag leaves it open.
+  const dockRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (u.panel === 'none') return;
+    let down: { x: number; y: number } | null = null;
+    const onDown = (e: PointerEvent) => {
+      down = dockRef.current?.contains(e.target as Node) ? null : { x: e.clientX, y: e.clientY };
+    };
+    const onUp = (e: PointerEvent) => {
+      if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6) ui.set({ panel: 'none' });
+      down = null;
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('pointerup', onUp);
+    return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('pointerup', onUp); };
+  }, [u.panel]);
+
   // the drawer's contents, measured, so its height can animate to them
   const paneRef = useRef<HTMLDivElement>(null);
   const [paneH, setPaneH] = useState(0);
@@ -88,7 +107,7 @@ export default function Overlay() {
 
       {help && <HelpMenu close={() => setHelp(false)} />}
 
-      <footer className={s.dock} aria-label="Transport">
+      <footer ref={dockRef} className={s.dock} aria-label="Transport">
         {/* the drawer: readouts tucked behind the pattern bar's top edge */}
         <div className={`${s.drawer} ${u.panel !== 'none' ? s.drawerOpen : ''}`}>
           <div className={s.readouts}>
