@@ -30,6 +30,8 @@ export type Progress = (p: number, label: string) => void;
  * Builds the whole instrument on a canvas, reporting progress for the preloader.
  * Resolves with a cleanup function once the first frame has been drawn.
  */
+const GUIDE_GLOW = new THREE.Color('#ff6a2a');
+
 export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string, progress: Progress, cancelled: () => boolean) {
   setFont(fontFamily);
   progress(0.55, 'setting up the studio'); await nextFrame();
@@ -123,6 +125,7 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
 
   const settle = (a: number, b: number) => Math.abs(a - b) > 1e-4;   // still moving?
   let shadowTick = 0, wasMoving = false;
+  let guideWas = false;                    // the guide was pulsing something last frame (one more frame to clear it)
 
   const frame = () => {
     const t = performance.now();
@@ -143,8 +146,25 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
       }
     }
 
+    // the guide's current target breathes: the key itself glows orange and sinks a touch,
+    // or on the steps step, the step lights glow. One breath every 1.2s.
+    const gs = ui.get().guide;
+    const guideKey = gs === 0 ? 'k5' : gs === 1 ? 'play' : null, guideSteps = gs === 2;
+    const breath = guideKey || guideSteps ? 0.5 - 0.5 * Math.cos((t / 1200) * Math.PI * 2) : 0;
+    if (guideKey || guideSteps || guideWas) changed = true;
+
     dev.keys.forEach((v) => {
       const k = v.key;
+      const lit = k.id === guideKey ? breath : 0;
+      const ud = v.mat.userData as { cap?: THREE.Color };
+      if (lit || ud.cap) {
+        // a white cap washes an emissive glow out, so the cap's own colour breathes toward orange
+        ud.cap ??= v.mat.color.clone();
+        v.mat.color.copy(ud.cap).lerp(GUIDE_GLOW, lit * 0.8);
+        v.mat.emissive.set(GUIDE_GLOW); v.mat.emissiveIntensity = lit * 0.3;
+        v.grp.position.y = v.y0 + v.off - lit * 0.04;
+        if (!lit) delete ud.cap;                           // back to its own colour: let go
+      }
       const target = k.held || t < k.flashUntil ? -0.085 : 0;
       if (settle(v.off, target) || settle(v.rx, k.tx) || settle(v.rz, k.tz)) {
         v.off += (target - v.off) * (target < v.off ? 0.6 : 0.3);
@@ -178,6 +198,7 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
       if (isCur) { ei = 3.2; gi = 0.9; }
       else if (isSel) { const b = 0.5 + 0.5 * Math.sin(t / 140); ei = 1.2 + 1.6 * b; gi = 0.35 + 0.4 * b; }
       else if (set[i].size) { ei = 0.55; gi = 0.12; }
+      if (guideSteps && !isCur) { ei = Math.max(ei, 0.5 + 1.6 * breath); gi = Math.max(gi, 0.08 + 0.3 * breath); }
       const white = isSel && !isCur;
       if (Math.abs(L.ei - ei) > 0.003 || Math.abs(L.gi - gi) > 0.002 || L.white !== white) {
         L.ei += (ei - L.ei) * 0.5; L.gi += (gi - L.gi) * 0.5; L.white = white;
@@ -188,6 +209,7 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
     });
     if (ledsChanged) { dev.commitLeds(); changed = true; }
 
+    guideWas = !!(guideKey || guideSteps);
     if (stage.stepLights()) changed = true;
     if (stage.hasIntro()) { stage.stepIntro(t); changed = true; }
     if (stage.controls.update()) changed = true;

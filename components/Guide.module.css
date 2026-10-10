@@ -1,33 +1,43 @@
-.ring {
-  position: fixed; z-index: 7; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
-  border: 2px solid var(--orange); pointer-events: none;
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--orange) 18%, transparent);
-  animation: ping 1.6s ease-out infinite;
-}
-@keyframes ping { 0% { transform: scale(0.7); opacity: 1; } 80%, 100% { transform: scale(1.35); opacity: 0; } }
+/* the step's target pulses in the 3D scene itself (see the guide pulse in lib/three/app.ts) */
 
 .card {
-  position: fixed; z-index: 8; padding: 14px 16px; border-radius: 12px;
-  background: var(--panel-bg); border: 1px solid var(--panel-line); box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  position: fixed; z-index: 8; padding: 20px 18px 16px; border-radius: 14px;
+  background: var(--panel-solid); border: 1px solid var(--panel-line); box-shadow: var(--panel-shadow);
   color: var(--ink); font: 400 13px/1.5 var(--font-sans), sans-serif;
   animation: pop 0.2s ease-out;
 }
 @keyframes pop { from { opacity: 0; transform: translateY(4px); } }
-.count { color: var(--orange); font: 500 11px var(--font-mono), monospace; letter-spacing: 0.08em; margin-bottom: 2px; }
-.title { font-weight: 500; }
-.body { margin: 4px 0 12px; color: var(--muted); }
+/* progress: one dot per step — the current one stretches into an orange pill */
+.dots { display: flex; gap: 5px; align-items: center; margin-bottom: 10px; }
+.dots i {
+  width: 6px; height: 6px; border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.3s;
+}
+.dots i.dotDone { background: color-mix(in srgb, var(--ink) 55%, transparent); }
+.dots i.dotOn { width: 18px; background: var(--orange); }
+.title { display: block; font: 600 18px/1.25 var(--font-wanted), var(--font-sans), sans-serif; letter-spacing: -0.01em; }
+.body { margin: 6px 0 14px; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .wait { color: var(--muted); font: 500 11px var(--font-mono), monospace; animation: blink 1.4s ease-in-out infinite; }
 @keyframes blink { 50% { opacity: 0.4; } }
 .btns { display: flex; gap: 6px; }
 .skip, .next {
-  border-radius: 8px; padding: 6px 11px; cursor: pointer; font: 500 12px var(--font-mono), monospace; text-transform: lowercase;
+  border-radius: 9px; padding: 7px 13px; cursor: pointer;
+  font: 600 13px var(--font-wanted), var(--font-sans), sans-serif;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
 }
 .skip { background: transparent; border: 1px solid var(--panel-line); color: var(--muted); }
 .next { background: var(--orange); border: 0; color: #fff; }
+@media (hover: hover) {
+  .skip:hover { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 35%, transparent); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .next:hover { background: color-mix(in srgb, var(--orange), #fff 12%); }
+}
+.skip:active, .next:active { transform: scale(0.96); }
 .skip:focus-visible, .next:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ring, .wait { animation: none; }
+  .dots i { transition: none; }
+  .wait { animation: none; }
+  .skip, .next { transition: none; }
 }

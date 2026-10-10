@@ -69,25 +69,26 @@ export default function Guide() {
 
   if (step < 0 || step >= STEPS.length || !pos) return null;
   const st = STEPS[step];
-  const W = Math.min(300, window.innerWidth - 32), H = 150;
+  const W = Math.min(320, window.innerWidth - 32), H = 170;
   const below = st.anchor !== 'tools' && pos.y < H + 40;
   const left = Math.max(16, Math.min(window.innerWidth - W - 16, pos.x - W / 2));
   const top = below ? pos.y + 22 : pos.y - H - 22;
 
   return (
     <>
-      {st.anchor !== 'tools' && <div className={s.ring} style={{ left: pos.x, top: pos.y }} aria-hidden="true" />}
       <div className={s.card} style={{ left, top, width: W }} role="dialog" aria-live="polite" aria-label={`Guide step ${step + 1} of ${STEPS.length}`}>
-        <div className={s.count}>{step + 1} / {STEPS.length}</div>
+        <div className={s.dots} aria-label={`Step ${step + 1} of ${STEPS.length}`} role="img">
+          {STEPS.map((_, i) => <i key={i} className={i === step ? s.dotOn : i < step ? s.dotDone : ''} />)}
+        </div>
         <b className={s.title}>{st.title}</b>
         <p className={s.body}>{st.body}</p>
         <div className={s.row}>
           {st.action ? <span className={s.wait}>{st.action}</span> : <span />}
           <span className={s.btns}>
-            <button type="button" className={s.skip} onClick={finish}>skip</button>
+            <button type="button" className={s.skip} onClick={finish}>Skip</button>
             <button type="button" className={s.next}
               onClick={(e) => { if (step + 1 >= STEPS.length) finish(); else ui.set({ guide: step + 1 }); e.currentTarget.blur(); }}>
-              {step + 1 >= STEPS.length ? "let's go" : 'next'}
+              {step + 1 >= STEPS.length ? "Let's go" : 'Next'}
             </button>
           </span>
         </div>
