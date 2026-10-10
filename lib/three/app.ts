@@ -146,7 +146,7 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
       }
     }
 
-    // the guide's current target breathes: the key itself glows orange and sinks a touch,
+    // the guide's current target: the key turns orange and breathes (brighter, and sinks a touch),
     // or on the steps step, the step lights glow. One breath every 1.2s.
     const gs = ui.get().guide;
     const guideKey = gs === 0 ? 'k5' : gs === 1 ? 'play' : null, guideSteps = gs === 2;
@@ -155,14 +155,14 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
 
     dev.keys.forEach((v) => {
       const k = v.key;
-      const lit = k.id === guideKey ? breath : 0;
+      const lit = k.id === guideKey ? 0.72 + 0.28 * breath : 0;   // always clearly orange, breathing a little brighter
       const ud = v.mat.userData as { cap?: THREE.Color };
       if (lit || ud.cap) {
         // a white cap washes an emissive glow out, so the cap's own colour breathes toward orange
         ud.cap ??= v.mat.color.clone();
-        v.mat.color.copy(ud.cap).lerp(GUIDE_GLOW, lit * 0.8);
-        v.mat.emissive.set(GUIDE_GLOW); v.mat.emissiveIntensity = lit * 0.3;
-        v.grp.position.y = v.y0 + v.off - lit * 0.04;
+        v.mat.color.copy(ud.cap).lerp(GUIDE_GLOW, lit);
+        v.mat.emissive.set(GUIDE_GLOW); v.mat.emissiveIntensity = lit * 0.35;
+        v.grp.position.y = v.y0 + v.off - (lit ? breath * 0.04 : 0);
         if (!lit) delete ud.cap;                           // back to its own colour: let go
       }
       const target = k.held || t < k.flashUntil ? -0.085 : 0;
