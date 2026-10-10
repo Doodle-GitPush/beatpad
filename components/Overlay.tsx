@@ -148,6 +148,7 @@ export default function Overlay() {
       </footer>
 
       <Toast />
+      <SlowCard />
       <div className={`${s.hud} ${u.hud.show ? s.show : ''}`} style={{ left: u.hud.x, top: u.hud.y }}>{u.hud.text}</div>
       {u.ready && <Guide />}
     </>
@@ -155,6 +156,29 @@ export default function Overlay() {
 }
 
 /** short-lived status messages ("link copied", "loaded a shared beat") above the transport */
+const TIER_NAMES = ['ultra', 'high', 'medium', 'low'] as const;
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/** offered when the scene animates below 24 fps: step the graphics down one notch, or keep them */
+function SlowCard() {
+  const u = useUi();
+  if (u.slowFps == null) return null;
+  const next = TIER_NAMES[TIER_NAMES.indexOf(u.tier) + 1];
+  if (!next) return null;
+  return (
+    <div className={s.slow} role="alertdialog" aria-labelledby="slow-title" aria-describedby="slow-body">
+      <b id="slow-title" className={s.slowTitle}>Running at {u.slowFps} fps</b>
+      <p id="slow-body" className={s.slowBody}>
+        Lower the graphics to {cap(next)} for smoother playback? You can change this any time from the help menu.
+      </p>
+      <div className={s.slowRow}>
+        <button type="button" className={s.slowKeep} onClick={() => ui.set({ slowFps: null, slowDismissed: true })}>Keep {cap(u.tier)}</button>
+        <button type="button" className={s.slowLower} onClick={() => hooks.setQuality(next)}>Lower to {cap(next)}</button>
+      </div>
+    </div>
+  );
+}
+
 function Toast() {
   const [shown, setShown] = useState<string | null>(null);
   useEffect(() => {

@@ -151,6 +151,31 @@
 }
 .toastOn { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------- "running slowly" card: under the ? button, where the quality setting lives ---------- */
+.slow {
+  position: fixed; top: 64px; right: 20px; z-index: 8; width: min(320px, calc(100vw - 32px));
+  padding: 18px 18px 16px; border-radius: 14px;
+  background: var(--panel-solid); border: 1px solid var(--panel-line); box-shadow: var(--panel-shadow); color: var(--ink);
+  font: 400 14px/1.5 var(--font-wanted), var(--font-sans), sans-serif;
+  animation: slowIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes slowIn { from { opacity: 0; filter: blur(8px); translate: 0 -6px; } }
+.slowTitle { display: block; font: 600 17px/1.25 var(--font-wanted), var(--font-sans), sans-serif; }
+.slowBody { margin: 6px 0 14px; color: var(--muted); }
+.slowRow { display: flex; justify-content: flex-end; gap: 6px; }
+.slowKeep, .slowLower {
+  border-radius: 9px; padding: 7px 13px; cursor: pointer; font: 600 13px var(--font-wanted), var(--font-sans), sans-serif;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+.slowKeep { background: transparent; border: 1px solid var(--panel-line); color: var(--muted); }
+.slowLower { background: var(--orange); border: 0; color: #fff; }
+@media (hover: hover) {
+  .slowKeep:hover { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 35%, transparent); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .slowLower:hover { background: color-mix(in srgb, var(--orange), #fff 12%); }
+}
+.slowKeep:active, .slowLower:active { transform: scale(0.96); }
+.slowKeep:focus-visible, .slowLower:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
 /* ---------- help menu ---------- */
 .menu {
   position: fixed; top: 60px; right: 20px; z-index: 7; width: 300px; max-height: calc(100vh - 150px); overflow: auto;
@@ -230,7 +255,7 @@
   .menu { top: 52px; right: 10px; left: 10px; width: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rec, .menu { animation: none; }
+  .rec, .menu, .slow { animation: none; }
   .toast, .step, .iconBtn, .primary, .transport, .drawerBody, .drawerInner > * { transition: none; }
   .drawerInner > * { filter: none; translate: none; }
 }

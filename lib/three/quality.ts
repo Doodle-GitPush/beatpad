@@ -31,7 +31,7 @@ export function readSetting(): QualitySetting {
     const v = localStorage.getItem(KEY);
     if (v === 'auto' || v === 'ultra' || v === 'high' || v === 'medium' || v === 'low') return v;
   } catch { /* unavailable */ }
-  return 'auto';
+  return 'ultra';                          // the full look by default; if it runs slowly we offer to step down
 }
 export function saveSetting(v: QualitySetting) {
   try { localStorage.setItem(KEY, v); } catch { /* unavailable */ }
@@ -61,10 +61,11 @@ export function pixelRatioFor(spec: TierSpec) {
 }
 
 /**
- * Watches frame times while the scene is actively animating; if they stay slow, asks to drop a tier.
+ * Watches frame times while the scene is actively animating; if they stay slow, reports the frame rate.
  * Idle frames aren't rendered at all, so only real work is measured.
  */
-export function createGovernor(onSlow: () => void) {
+export const SLOW_FPS = 24;
+export function createGovernor(onSlow: (fps: number) => void) {
   const samples: number[] = [];
   let last = 0, cooldownUntil = 0;
   return {
@@ -73,10 +74,10 @@ export function createGovernor(onSlow: () => void) {
       const dt = now - last; last = now;
       if (dt > 250 || now < cooldownUntil) { samples.length = 0; return; }   // gap = we were idle, not slow
       samples.push(dt);
-      if (samples.length < 60) return;
+      if (samples.length < 72) return;                                      // ~3s of animation at 24 fps
       const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
       samples.length = 0;
-      if (avg > 30) { cooldownUntil = now + 3000; onSlow(); }               // below ~33 fps while active → step down
+      if (avg > 1000 / SLOW_FPS) { cooldownUntil = now + 5000; onSlow(1000 / avg); }
     },
     reset() { samples.length = 0; last = 0; },
   };

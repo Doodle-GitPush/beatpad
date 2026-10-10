@@ -111,13 +111,16 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
     (window as unknown as { __bp: unknown }).__bp = { perf, renderer: stage.renderer, info: stage.renderer.info, controls: stage.controls, stage, setQuality: (q: QualitySetting) => hooks.setQuality(q) };
     stage.renderer.info.autoReset = false;
   }
-  const governor = createGovernor(() => {
-    if (setting !== 'auto') return;
+  // below 24 fps while animating: on 'auto' step down quietly; on a chosen tier, offer to (once per visit)
+  const governor = createGovernor((fps) => {
     const i = TIER_ORDER.indexOf(stage.getTier());
-    if (i < TIER_ORDER.length - 1) { stage.setTier(TIER_ORDER[i + 1]); ui.set({ tier: TIER_ORDER[i + 1] }); }
+    if (i >= TIER_ORDER.length - 1) return;                          // already as light as it gets
+    if (setting === 'auto') { stage.setTier(TIER_ORDER[i + 1]); ui.set({ tier: TIER_ORDER[i + 1] }); return; }
+    const u = ui.get();
+    if (!u.slowDismissed && u.slowFps == null) ui.set({ slowFps: Math.round(fps) });
   });
   hooks.setQuality = (q: QualitySetting) => {
-    setting = q; saveSetting(q); governor.reset();
+    setting = q; saveSetting(q); governor.reset(); ui.set({ slowFps: null });
     const t = q === 'auto' ? (probe ? guessTier(probe) : 'medium') : q;
     stage.setTier(t); ui.set({ quality: q, tier: t });
   };

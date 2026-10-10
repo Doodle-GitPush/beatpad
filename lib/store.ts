@@ -18,6 +18,10 @@ export interface UiState {
   /** rendering quality setting and the tier actually in use */
   quality: 'auto' | 'ultra' | 'high' | 'medium' | 'low';
   tier: 'ultra' | 'high' | 'medium' | 'low';
+  /** measured frame rate when it stayed under 24 fps: shows the "lower the quality?" card */
+  slowFps: number | null;
+  /** the user chose to keep their quality this visit; don't ask again */
+  slowDismissed: boolean;
   /** 0–1 load progress and what is happening, for the preloader */
   progress: number;
   loadStage: string;
@@ -47,8 +51,10 @@ let state: UiState = {
   colorway: 0,
   challengeEntry: null,
   guide: -1,
-  quality: 'auto',
-  tier: 'high',
+  quality: 'ultra',
+  tier: 'ultra',
+  slowFps: null,
+  slowDismissed: false,
   progress: 0,
   loadStage: 'loading the instrument',
   theme: 'light',

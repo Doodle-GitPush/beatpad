@@ -69,9 +69,9 @@ types/n8ao.d.ts         typings for the n8ao ambient-occlusion package
   camera, a key, knob, jog, LED or light is actually changing.
 - The shadow map is re-rendered only while parts that cast shadows move.
 - Quality tiers (`lib/three/quality.ts`): every tier keeps reflections and soft shadows; slower devices give up
-  resolution first. **auto** picks high (≤1.75× pixel ratio, AO, bloom, 2K shadows) on capable devices and lower
-  tiers on weak / mobile GPUs, and a governor steps down if active frames average under ~33 fps. **ultra**
-  (2×, full-res AO, 4K shadows) is opt-in from the **?** menu.
+  resolution first. Everyone starts on **ultra** (2×, full-res AO, 4K shadows). If active frames average under
+  24 fps for ~3 s, a card offers to drop one tier (or keep it, and it won't ask again that visit). **auto** in the
+  **?** menu guesses a tier from the GPU and steps down quietly instead of asking.
 - The studio environment is rendered into a 1024 px cubemap before prefiltering (three's `fromScene` is fixed at
   256 px), which is what keeps reflections on keys, metal and the jog crisp.
 - Small static parts are merged into one draw call per material, the 16 LEDs are two instanced draws, and
