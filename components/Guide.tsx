@@ -23,7 +23,11 @@ const finish = () => {
 export default function Guide() {
   const u = useUi();
   const step = u.guide;
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [shown, setShown] = useState(false);              // has a target on screen
+  const card = useRef<HTMLDivElement>(null);
+  const at = useRef<{ x: number; y: number } | null>(null);   // where the card is drawn, kept across steps so a step change glides
+  const inner = useRef<HTMLDivElement>(null);
+  const [innerH, setInnerH] = useState<number | null>(null);
   const start = useRef({ hits: 0 });
 
   // first visit: start once the device has loaded and the camera intro has settled
@@ -46,40 +50,62 @@ export default function Guide() {
     else if (step === 2 && u.sel >= 0) ui.set({ guide: 3 });
   }, [step, u.hits, u.state, u.sel]);
 
-  // follow the anchor (the camera moves during the intro and when orbiting)
+  // follow the anchor (the camera moves during the intro and when orbiting). The card eases toward
+  // where it should be every frame, written straight to its style: a step change glides it across,
+  // and a target that moves every frame (the intro swoosh) is chased smoothly, with no transition
+  // restarting each frame.
+  const W = typeof window === 'undefined' ? 320 : Math.min(320, window.innerWidth - 32);
   useEffect(() => {
     if (step < 0) return;
-    let raf = 0;
-    let last = '';
-    const tick = () => {
+    let raf = 0, last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
       const a = STEPS[step].anchor;
       let p: { x: number; y: number } | null;
       if (a === 'tools') {
         const r = document.getElementById('bp-tools')?.getBoundingClientRect();
         p = r ? { x: r.left + r.width / 2, y: r.top } : null;   // the create menu sits at the bottom: point from above
       } else p = anchors[a]?.() ?? null;
-      // only re-render when the target moved by a whole pixel
-      const key = p ? `${Math.round(p.x)},${Math.round(p.y)}` : '';
-      if (key !== last) { last = key; setPos(p && { x: Math.round(p.x), y: Math.round(p.y) }); }
+      setShown(!!p);
+      const el = card.current;
+      if (p && el) {
+        const H = el.offsetHeight || 170;
+        const below = a !== 'tools' && p.y < H + 40;
+        const tx = Math.max(16, Math.min(window.innerWidth - W - 16, p.x - W / 2));
+        const ty = below ? p.y + 22 : p.y - H - 22;
+        const cur = at.current;
+        if (!cur) at.current = { x: tx, y: ty };
+        else { const k = 1 - Math.exp(-dt / 0.12); cur.x += (tx - cur.x) * k; cur.y += (ty - cur.y) * k; }
+        const { x, y } = at.current!;
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [step]);
+  }, [step, W]);
 
-  if (step < 0 || step >= STEPS.length || !pos) return null;
+  // the card's height follows its contents, so a longer or shorter step grows or shrinks it smoothly
+  useEffect(() => {
+    const el = inner.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setInnerH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [shown]);
+
+  if (step < 0 || step >= STEPS.length) return null;
   const st = STEPS[step];
-  const W = Math.min(320, window.innerWidth - 32), H = 170;
-  const below = st.anchor !== 'tools' && pos.y < H + 40;
-  const left = Math.max(16, Math.min(window.innerWidth - W - 16, pos.x - W / 2));
-  const top = below ? pos.y + 22 : pos.y - H - 22;
 
   return (
     <>
-      <div className={s.card} style={{ left, top, width: W }} role="dialog" aria-live="polite" aria-label={`Guide step ${step + 1} of ${STEPS.length}`}>
+      <div ref={card} className={s.card} style={{ width: W, visibility: shown ? 'visible' : 'hidden' }} role="dialog" aria-live="polite" aria-label={`Guide step ${step + 1} of ${STEPS.length}`}>
         <div className={s.dots} aria-label={`Step ${step + 1} of ${STEPS.length}`} role="img">
           {STEPS.map((_, i) => <i key={i} className={i === step ? s.dotOn : i < step ? s.dotDone : ''} />)}
         </div>
+        <div className={s.sizer} style={{ height: innerH ?? undefined }}>
+        <div ref={inner}>
+        <div key={step} className={s.swap}>
         <b className={s.title}>{st.title}</b>
         <p className={s.body}>{st.body}</p>
         <div className={s.row}>
@@ -91,6 +117,9 @@ export default function Guide() {
               {step + 1 >= STEPS.length ? "Let's go" : 'Next'}
             </button>
           </span>
+        </div>
+        </div>
+        </div>
         </div>
       </div>
     </>

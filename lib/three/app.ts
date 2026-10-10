@@ -125,7 +125,7 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
 
   const settle = (a: number, b: number) => Math.abs(a - b) > 1e-4;   // still moving?
   let shadowTick = 0, wasMoving = false;
-  let guideWas = false;                    // the guide was pulsing something last frame (one more frame to clear it)
+  let guideWas = false, lastT = performance.now();                    // the guide was pulsing something last frame (one more frame to clear it)
 
   const frame = () => {
     const t = performance.now();
@@ -146,24 +146,25 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
       }
     }
 
-    // the guide's current target: the key turns orange and breathes (brighter, and sinks a touch),
-    // or on the steps step, the step lights glow. One breath every 1.2s.
+    // the guide's current target: the key fades to orange and breathes a little brighter and back,
+    // or on the steps step, the step lights glow. One breath every 1.8s.
     const gs = ui.get().guide;
     const guideKey = gs === 0 ? 'k5' : gs === 1 ? 'play' : null, guideSteps = gs === 2;
-    const breath = guideKey || guideSteps ? 0.5 - 0.5 * Math.cos((t / 1200) * Math.PI * 2) : 0;
+    const breath = guideKey || guideSteps ? 0.5 - 0.5 * Math.cos((t / 1800) * Math.PI * 2) : 0;
+    const fade = 1 - Math.exp(-Math.min(0.05, (t - lastT) / 1000) / 0.22);   // eases the key in and out of orange
     if (guideKey || guideSteps || guideWas) changed = true;
 
     dev.keys.forEach((v) => {
       const k = v.key;
-      const lit = k.id === guideKey ? 0.72 + 0.28 * breath : 0;   // always clearly orange, breathing a little brighter
-      const ud = v.mat.userData as { cap?: THREE.Color };
-      if (lit || ud.cap) {
-        // a white cap washes an emissive glow out, so the cap's own colour breathes toward orange
+      const want = k.id === guideKey ? 0.72 + 0.28 * breath : 0;   // clearly orange, breathing a little brighter
+      const ud = v.mat.userData as { cap?: THREE.Color; lit?: number };
+      if (want || ud.cap) {
+        // a white cap washes an emissive glow out, so the cap's own colour moves toward orange
         ud.cap ??= v.mat.color.clone();
-        v.mat.color.copy(ud.cap).lerp(GUIDE_GLOW, lit);
-        v.mat.emissive.set(GUIDE_GLOW); v.mat.emissiveIntensity = lit * 0.35;
-        v.grp.position.y = v.y0 + v.off - (lit ? breath * 0.04 : 0);
-        if (!lit) delete ud.cap;                           // back to its own colour: let go
+        ud.lit = (ud.lit ?? 0) + (want - (ud.lit ?? 0)) * fade;
+        if (!want && ud.lit < 0.003) { v.mat.color.copy(ud.cap); v.mat.emissiveIntensity = 0; delete ud.cap; delete ud.lit; }
+        else { v.mat.color.copy(ud.cap).lerp(GUIDE_GLOW, ud.lit); v.mat.emissive.set(GUIDE_GLOW); v.mat.emissiveIntensity = ud.lit * 0.35; }
+        changed = true;
       }
       const target = k.held || t < k.flashUntil ? -0.085 : 0;
       if (settle(v.off, target) || settle(v.rx, k.tx) || settle(v.rz, k.tz)) {
@@ -209,7 +210,7 @@ export async function startBeatPad(canvas: HTMLCanvasElement, fontFamily: string
     });
     if (ledsChanged) { dev.commitLeds(); changed = true; }
 
-    guideWas = !!(guideKey || guideSteps);
+    guideWas = !!(guideKey || guideSteps); lastT = t;
     if (stage.stepLights()) changed = true;
     if (stage.hasIntro()) { stage.stepIntro(t); changed = true; }
     if (stage.controls.update()) changed = true;

@@ -1,12 +1,17 @@
 /* the step's target pulses in the 3D scene itself (see the guide pulse in lib/three/app.ts) */
 
 .card {
-  position: fixed; z-index: 8; padding: 20px 18px 16px; border-radius: 14px;
+  position: fixed; left: 0; top: 0; z-index: 8; padding: 20px 18px 16px; border-radius: 14px;
+  will-change: transform;                  /* positioned by transform from Guide.tsx, eased per frame */
   background: var(--panel-solid); border: 1px solid var(--panel-line); box-shadow: var(--panel-shadow);
   color: var(--ink); font: 400 13px/1.5 var(--font-sans), sans-serif;
   animation: pop 0.2s ease-out;
 }
-@keyframes pop { from { opacity: 0; transform: translateY(4px); } }
+@keyframes pop { from { opacity: 0; } }
+/* a step change: the height eases to the new contents while they blur in */
+.sizer { overflow: hidden; transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+.swap { animation: swapIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes swapIn { from { opacity: 0; filter: blur(8px); translate: 0 6px; } }
 /* progress: one dot per step — the current one stretches into an orange pill */
 .dots { display: flex; gap: 5px; align-items: center; margin-bottom: 10px; }
 .dots i {
@@ -37,7 +42,8 @@
 .skip:focus-visible, .next:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .dots i { transition: none; }
+  .dots i, .sizer { transition: none; }
+  .swap { animation: none; }
   .wait { animation: none; }
   .skip, .next { transition: none; }
 }
