@@ -12,7 +12,7 @@ const STEPS: Step[] = [
   { anchor: 'keys', title: 'Every key is a sound', body: 'Tap a few keys — or press 1–9 on your keyboard.', action: 'waiting for a sound…' },
   { anchor: 'play', title: 'Start the beat', body: 'Press ○ (or Space) to play the pattern.', action: 'waiting for play…' },
   { anchor: 'steps', title: 'Write your own', body: 'Click a step light, then press keys to add sounds on that step.', action: 'waiting for a step…' },
-  { anchor: 'tools', title: 'Go further', body: "Take today's challenge, load a starter beat, or make the keys your own. Share anything with a link." },
+  { anchor: 'tools', title: 'Go further', body: "Open Create to take today's challenge, play a starter beat, or make the keys your own." },
 ];
 
 const finish = () => {

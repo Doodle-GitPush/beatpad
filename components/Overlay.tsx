@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { exportWav, hooks, selectStep, shareBeat, togglePlay } from '@/lib/sequencer';
+import { exportWav, hooks, selectStep, togglePlay } from '@/lib/sequencer';
 import { applyTheme } from '@/lib/theme';
 import { ui, useUi } from '@/lib/store';
 import Guide from './Guide';
 import { AudioWaveform, Drum, Grid3x3, Metronome, Play, Repeat, Square } from 'lucide-react';
 import { Logo } from './Logo';
-import { IconDownload, IconHelp, IconMoon, IconShare, IconSun } from './Icons';
+import { IconDownload, IconHelp, IconMoon, IconSun } from './Icons';
 import { DrawerPanel, Tools } from './Panel';
 import s from './BeatPad.module.css';
 
@@ -89,9 +89,6 @@ export default function Overlay() {
         </div>
         <div className={s.actions}>
           <a className={`${s.iconBtn} ${s.glass} ${s.textBtn}`} href="/2d.html" aria-label="Switch to the 2D version" title="Switch to the 2D version">2D</a>
-          <button type="button" className={s.primary} onClick={blurAfter(() => shareBeat())} aria-label="Share this beat" title="Copy a link to this beat">
-            <IconShare /><span className={s.primaryLabel}>share</span>
-          </button>
           <button type="button" className={`${s.iconBtn} ${s.glass}`} onClick={blurAfter(exportWav)} aria-label="Export WAV" title="Download this pattern as a WAV">
             <IconDownload />
           </button>

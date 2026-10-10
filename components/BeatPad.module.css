@@ -27,7 +27,7 @@
 .brand span { color: var(--muted); font-weight: 400; }
 
 .actions { display: flex; align-items: center; gap: 6px; pointer-events: auto; }
-.iconBtn, .primary {
+.iconBtn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   height: 34px; border-radius: 999px; cursor: pointer; color: var(--ink);
   font: 500 12px var(--font-mono), monospace; letter-spacing: 0.04em; text-transform: lowercase;
@@ -35,11 +35,9 @@
 }
 .iconBtn { width: 34px; padding: 0; }
 .iconBtn:hover { border-color: color-mix(in srgb, var(--ink) 35%, transparent); }
-.iconBtn:active, .primary:active { transform: scale(0.96); }
-.iconBtn svg, .primary svg { width: 16px; height: 16px; }
-.primary { padding: 0 14px 0 12px; border: 0; background: var(--orange); color: #fff; box-shadow: 0 6px 18px -8px var(--orange); }
-.primary:hover { filter: brightness(1.06); }
-.iconBtn:focus-visible, .primary:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.iconBtn:active { transform: scale(0.96); }
+.iconBtn svg { width: 16px; height: 16px; }
+.iconBtn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 .iconOn { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .textBtn { width: auto; padding: 0 12px; text-decoration: none; font-size: 11px; letter-spacing: 0.08em; text-transform: none; }
 
@@ -230,8 +228,6 @@
 /* ---------- small screens ---------- */
 @media (max-width: 860px) {
   .brand span { display: none; }
-  .primaryLabel { display: none; }
-  .primary { width: 34px; padding: 0; }
 }
 @media (max-width: 700px) {
   /* row 1: logo + actions · row 2: tool pills (scrolls sideways) */
@@ -256,6 +252,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .rec, .menu, .slow { animation: none; }
-  .toast, .step, .iconBtn, .primary, .transport, .drawerBody, .drawerInner > * { transition: none; }
+  .toast, .step, .iconBtn, .transport, .drawerBody, .drawerInner > * { transition: none; }
   .drawerInner > * { filter: none; translate: none; }
 }
