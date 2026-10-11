@@ -230,6 +230,7 @@ html, body {
   transition:
     width 380ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 160ms ease,
+    color 160ms ease,
     scale 340ms cubic-bezier(0.22, 1, 0.36, 1);}
 
 .crt-stage[data-open="true"] .crt-pill {
@@ -412,8 +413,9 @@ html, body {
 }
 @media (hover: hover) {
   .bp-create:not([data-open="true"]):has(.crt-pill:hover) .crt-body {
-    background: color-mix(in srgb, var(--board), var(--ink) 9%);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 32%, transparent);
+    background: var(--orange);
+    box-shadow: 0 0 0 1px var(--orange);
   }
+  .bp-create:not([data-open="true"]) .crt-pill:hover { color: #fff; }
 }
 .crt-pill:focus-visible, .crt-item button:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
