@@ -35,8 +35,9 @@
 .skip { background: transparent; border: 1px solid var(--panel-line); color: var(--muted); }
 .next { background: var(--orange); border: 0; color: #fff; }
 @media (hover: hover) {
-  .skip:hover { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 35%, transparent); background: color-mix(in srgb, var(--ink) 6%, transparent); }
-  .next:hover { background: color-mix(in srgb, var(--orange), #fff 12%); }
+  /* both go white on hover; Next keeps its orange as the text so it still reads as the main action */
+  .skip:hover { background: #fff; border-color: #fff; color: #1c1c1b; }
+  .next:hover { background: #fff; color: var(--orange); }
 }
 .skip:active, .next:active { transform: scale(0.96); }
 .skip:focus-visible, .next:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
