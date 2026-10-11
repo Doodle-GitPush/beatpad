@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
+import { Analytics } from '@vercel/analytics/next';
 import { THEME_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
@@ -36,7 +37,10 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         {/* sets data-theme before first paint so there is no light/dark flash */}
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
